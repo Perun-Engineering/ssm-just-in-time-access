@@ -13,7 +13,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	
+
 	"github.com/ssm-access-manager/internal/audit"
 	"github.com/ssm-access-manager/internal/logging"
 	"github.com/ssm-access-manager/internal/models"
@@ -43,7 +43,7 @@ var (
 
 func init() {
 	var err error
-	
+
 	// Initialize logger
 	logger, err = logging.NewProductionLogger()
 	if err != nil {
@@ -55,7 +55,7 @@ func init() {
 	slackSigningSecret := os.Getenv("SLACK_SIGNING_SECRET")
 	slackClient = slack.NewClient(slackBotToken, slackSigningSecret)
 	slackNotifier = slack.NewNotifier(slackClient)
-	
+
 	// Initialize group membership cache with 5-minute TTL
 	groupCache = slack.NewGroupMembershipCache(slackBotToken, 5*time.Minute)
 
@@ -74,7 +74,7 @@ func init() {
 	requestsTable := os.Getenv("REQUESTS_TABLE")
 	documentsTable := os.Getenv("DOCUMENTS_TABLE")
 	approvalGroupsTable := os.Getenv("APPROVAL_GROUPS_TABLE")
-	
+
 	userRepo = repository.NewUserRepository(dynamoClient, usersTable)
 	accountRepo := repository.NewAccountRepository(dynamoClient, accountsTable)
 	requestRepo = repository.NewRequestRepository(dynamoClient, requestsTable)
@@ -97,7 +97,7 @@ func init() {
 	approvalGroupService = service.NewApprovalGroupService(approvalGroupRepo, authService, auditService)
 	accountService = service.NewAccountService(accountRepo, nil, roleAssumer, authService)
 	requestService = service.NewAccessRequestService(requestRepo, nil, authService, auditService)
-	
+
 	// Initialize document service
 	documentPrefix := os.Getenv("DOCUMENT_PREFIX")
 	if documentPrefix == "" {
@@ -105,7 +105,7 @@ func init() {
 	}
 	nameGenerator := validation.NewDocumentNameGeneratorWithPrefix(documentPrefix)
 	documentService = service.NewSSMDocumentService(documentRepo, roleAssumer, nameGenerator)
-	
+
 	// Wire up dependencies for revoke functionality
 	requestService.SetDocumentRepository(documentRepo)
 	requestService.SetDocumentService(documentService)
@@ -129,7 +129,7 @@ type SlackCommand struct {
 
 func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	// Log the incoming request
-	logger.Info(fmt.Sprintf("Received admin command: ContentType=%s, Body length=%d", 
+	logger.Info(fmt.Sprintf("Received admin command: ContentType=%s, Body length=%d",
 		request.Headers["content-type"], len(request.Body)))
 
 	// Parse Slack command
@@ -154,7 +154,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	for k, v := range request.Headers {
 		headers.Set(k, v)
 	}
-	
+
 	err = slackClient.VerifySignature(headers, request.Body)
 	if err != nil {
 		logger.Warn("invalid Slack signature")
@@ -169,7 +169,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if err != nil {
 		// Log unauthorized attempt
 		authService.LogUnauthorizedAttempt(ctx, cmd.UserID, cmd.UserName, "admin_command")
-		
+
 		// Return empty response (no error message shown to user)
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
@@ -180,10 +180,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	// Parse command text - only split the first word (action), keep the rest intact
 	cmd.Text = strings.TrimSpace(cmd.Text)
 	spaceIndex := strings.Index(cmd.Text, " ")
-	
+
 	var action string
 	var argsText string
-	
+
 	if spaceIndex == -1 {
 		// No arguments, just the action
 		action = cmd.Text
@@ -192,7 +192,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 		action = cmd.Text[:spaceIndex]
 		argsText = strings.TrimSpace(cmd.Text[spaceIndex+1:])
 	}
-	
+
 	if action == "" {
 		return showHelp()
 	}
@@ -249,7 +249,7 @@ func handleAddAdmin(ctx context.Context, adminID string, argsText string) (event
 	// Extract user ID from mention
 	userMention := args[0]
 	userID := extractUserID(userMention)
-	
+
 	if userID == "" {
 		return slackResponse("❌ *Invalid User*\n\nPlease mention a user using @username\n\nExample: `/ssm-admin add-admin @jane.admin`")
 	}
@@ -257,7 +257,7 @@ func handleAddAdmin(ctx context.Context, adminID string, argsText string) (event
 	// Get user info from Slack
 	username := userID
 	email := fmt.Sprintf("%s@slack.local", userID)
-	
+
 	user, err := slackClient.GetUserInfo(ctx, userID)
 	if err == nil {
 		if user.RealName != "" {
@@ -291,7 +291,7 @@ func handleRemoveAdmin(ctx context.Context, adminID string, argsText string) (ev
 
 	userMention := args[0]
 	userID := extractUserID(userMention)
-	
+
 	if userID == "" {
 		return slackResponse("❌ *Invalid User*\n\nPlease mention a user using @username")
 	}
@@ -335,7 +335,7 @@ func handleListAllUsers(ctx context.Context) (events.APIGatewayProxyResponse, er
 	}
 
 	message := "📋 *All Users*\n\n"
-	
+
 	if len(admins) > 0 {
 		message += "*Administrators:*\n"
 		for _, admin := range admins {
@@ -347,7 +347,7 @@ func handleListAllUsers(ctx context.Context) (events.APIGatewayProxyResponse, er
 	if len(admins) == 0 {
 		message += "No users found."
 	}
-	
+
 	message += "\n*Note:* Manager role has been replaced with approval groups. Use `/ssm-admin list-approval-groups` to see approval groups."
 
 	return slackResponse(message)
@@ -397,35 +397,35 @@ func showHelp() (events.APIGatewayProxyResponse, error) {
 // Formats: <@U12345678|username> or <@U12345678>
 func extractUserID(mention string) string {
 	mention = strings.TrimSpace(mention)
-	
+
 	// Remove < and >
 	mention = strings.Trim(mention, "<>")
-	
+
 	// Remove @ prefix
 	mention = strings.TrimPrefix(mention, "@")
-	
+
 	// Split by | to handle <@U12345678|username> format
 	parts := strings.Split(mention, "|")
 	userID := parts[0]
-	
+
 	// Validate it looks like a Slack user ID
 	if strings.HasPrefix(userID, "U") && len(userID) > 5 {
 		return userID
 	}
-	
+
 	return ""
 }
 
 // parseFormEncodedCommand parses form-encoded Slack command
 func parseFormEncodedCommand(body string) (SlackCommand, error) {
 	var cmd SlackCommand
-	
+
 	// Parse URL-encoded form data
 	values, err := url.ParseQuery(body)
 	if err != nil {
 		return cmd, fmt.Errorf("failed to parse form data: %w", err)
 	}
-	
+
 	cmd.Token = values.Get("token")
 	cmd.TeamID = values.Get("team_id")
 	cmd.TeamDomain = values.Get("team_domain")
@@ -437,7 +437,7 @@ func parseFormEncodedCommand(body string) (SlackCommand, error) {
 	cmd.Text = values.Get("text")
 	cmd.ResponseURL = values.Get("response_url")
 	cmd.TriggerID = values.Get("trigger_id")
-	
+
 	return cmd, nil
 }
 
@@ -482,7 +482,7 @@ func handleListRequests(ctx context.Context, argsText string) (events.APIGateway
 	case "all":
 		requests, err = requestService.ListAllRequests(ctx)
 	default:
-		return slackResponse(fmt.Sprintf("❌ *Invalid Status*\n\nValid options: `pending`, `active`, `all`\n\nUsage: `/ssm-admin list-requests [pending|active|all]`"))
+		return slackResponse("❌ *Invalid Status*\n\nValid options: `pending`, `active`, `all`\n\nUsage: `/ssm-admin list-requests [pending|active|all]`")
 	}
 
 	if err != nil {
@@ -651,17 +651,17 @@ func handleCancelRequest(ctx context.Context, adminID string, argsText string) (
 func handleAddAccount(ctx context.Context, adminID string, argsText string) (events.APIGatewayProxyResponse, error) {
 	// Parse key=value arguments directly from the text
 	params := parseKeyValueArgs([]string{argsText})
-	
+
 	// Debug logging
 	logger.Info(fmt.Sprintf("Add account - parsed params: %+v", params))
 	logger.Info(fmt.Sprintf("Add account - raw text: %s", argsText))
-	
+
 	accountID := params["account_id"]
 	accountName := params["account_name"]
 	roleName := params["role_name"]
 	regionsStr := params["regions"]
 	bastionHostID := params["bastion_host_id"] // Optional
-	
+
 	// Validate required parameters
 	if accountID == "" {
 		return slackResponse("❌ *Missing Parameter*\n\nRequired: `account_id`\n\nUsage: `/ssm-admin add-account account_id=<id> account_name=<name> role_name=<role> regions=<regions> [bastion_host_id=<id>]`")
@@ -675,13 +675,13 @@ func handleAddAccount(ctx context.Context, adminID string, argsText string) (eve
 	if regionsStr == "" {
 		return slackResponse("❌ *Missing Parameter*\n\nRequired: `regions`\n\nUsage: `/ssm-admin add-account account_id=<id> account_name=<name> role_name=<role> regions=<regions> [bastion_host_id=<id>]`")
 	}
-	
+
 	// Parse regions (comma-separated)
 	regions := strings.Split(regionsStr, ",")
 	for i := range regions {
 		regions[i] = strings.TrimSpace(regions[i])
 	}
-	
+
 	// Add account
 	account, err := accountService.AddAccount(ctx, accountID, accountName, roleName, regions, bastionHostID, adminID)
 	if err != nil {
@@ -691,7 +691,7 @@ func handleAddAccount(ctx context.Context, adminID string, argsText string) (eve
 		})
 		return slackResponse(fmt.Sprintf("❌ *Failed to Add Account*\n\n%s", err.Error()))
 	}
-	
+
 	message := fmt.Sprintf("✅ *Account Added*\n\n"+
 		"*Account ID:* `%s`\n"+
 		"*Account Name:* %s\n"+
@@ -702,11 +702,11 @@ func handleAddAccount(ctx context.Context, adminID string, argsText string) (eve
 		account.RoleName,
 		strings.Join(account.Regions, ", "),
 	)
-	
+
 	if account.BastionHostID != "" {
 		message += fmt.Sprintf("*Bastion Host ID:* `%s`\n", account.BastionHostID)
 	}
-	
+
 	return slackResponse(message)
 }
 
@@ -715,19 +715,19 @@ func handleUpdateAccount(ctx context.Context, adminID string, argsText string) (
 	// Debug logging - show raw text with character codes
 	logger.Info(fmt.Sprintf("Update account - raw text: %q", argsText))
 	logger.Info(fmt.Sprintf("Update account - raw text bytes: %v", []byte(argsText)))
-	
+
 	// Parse key=value arguments directly from the text
 	params := parseKeyValueArgs([]string{argsText})
-	
+
 	// Debug logging
 	logger.Info(fmt.Sprintf("Update account - parsed params: %+v", params))
-	
+
 	accountID := params["account_id"]
 	accountName := params["account_name"]
 	roleName := params["role_name"]
 	regionsStr := params["regions"]
 	bastionHostID := params["bastion_host_id"] // Optional
-	
+
 	// Validate required parameters
 	if accountID == "" {
 		return slackResponse("❌ *Missing Parameter*\n\nRequired: `account_id`\n\nUsage: `/ssm-admin update-account account_id=<id> account_name=<name> role_name=<role> regions=<regions> [bastion_host_id=<id>]`")
@@ -741,13 +741,13 @@ func handleUpdateAccount(ctx context.Context, adminID string, argsText string) (
 	if regionsStr == "" {
 		return slackResponse("❌ *Missing Parameter*\n\nRequired: `regions`\n\nUsage: `/ssm-admin update-account account_id=<id> account_name=<name> role_name=<role> regions=<regions> [bastion_host_id=<id>]`")
 	}
-	
+
 	// Parse regions (comma-separated)
 	regions := strings.Split(regionsStr, ",")
 	for i := range regions {
 		regions[i] = strings.TrimSpace(regions[i])
 	}
-	
+
 	// Update account
 	account, err := accountService.UpdateAccount(ctx, accountID, accountName, roleName, regions, bastionHostID, adminID)
 	if err != nil {
@@ -757,7 +757,7 @@ func handleUpdateAccount(ctx context.Context, adminID string, argsText string) (
 		})
 		return slackResponse(fmt.Sprintf("❌ *Failed to Update Account*\n\n%s", err.Error()))
 	}
-	
+
 	message := fmt.Sprintf("✅ *Account Updated*\n\n"+
 		"*Account ID:* `%s`\n"+
 		"*Account Name:* %s\n"+
@@ -768,11 +768,11 @@ func handleUpdateAccount(ctx context.Context, adminID string, argsText string) (
 		account.RoleName,
 		strings.Join(account.Regions, ", "),
 	)
-	
+
 	if account.BastionHostID != "" {
 		message += fmt.Sprintf("*Bastion Host ID:* `%s`\n", account.BastionHostID)
 	}
-	
+
 	return slackResponse(message)
 }
 
@@ -783,11 +783,11 @@ func handleListAccounts(ctx context.Context) (events.APIGatewayProxyResponse, er
 		logger.LogError(ctx, "list_accounts", err, map[string]interface{}{})
 		return slackResponse("❌ *Failed to List Accounts*\n\nPlease try again later.")
 	}
-	
+
 	if len(accounts) == 0 {
 		return slackResponse("📋 *AWS Accounts*\n\nNo accounts configured.")
 	}
-	
+
 	message := "📋 *AWS Accounts*\n\n"
 	for _, account := range accounts {
 		message += fmt.Sprintf("*%s* (`%s`)\n", account.AccountName, account.AccountID)
@@ -798,49 +798,49 @@ func handleListAccounts(ctx context.Context) (events.APIGatewayProxyResponse, er
 		}
 		message += fmt.Sprintf("• Status: %s\n\n", account.Status)
 	}
-	
+
 	return slackResponse(message)
 }
 
 // parseKeyValueArgs parses key=value arguments from command text
 func parseKeyValueArgs(args []string) map[string]string {
 	params := make(map[string]string)
-	
+
 	// Join all args back together
 	text := strings.Join(args, " ")
-	
+
 	// Split by spaces, but respect quotes (both ASCII and Unicode smart quotes)
 	var tokens []string
 	var current strings.Builder
 	inQuotes := false
 	quoteChar := rune(0)
-	
+
 	for _, ch := range text {
 		// Handle both ASCII quotes and Unicode smart quotes
 		isOpenQuote := ch == '"' || ch == '\'' || ch == '\u201C' || ch == '\u2018' || ch == '\u2039' || ch == '\u00AB'
 		isCloseQuote := ch == '"' || ch == '\'' || ch == '\u201D' || ch == '\u2019' || ch == '\u203A' || ch == '\u00BB'
-		
+
 		if isOpenQuote && !inQuotes {
 			inQuotes = true
 			quoteChar = ch
 			continue
 		}
-		
+
 		// For smart quotes, match opening with closing
 		if inQuotes {
 			if (quoteChar == '"' && ch == '"') || // ASCII double quote
-			   (quoteChar == '\'' && ch == '\'') || // ASCII single quote
-			   (quoteChar == '\u201C' && ch == '\u201D') || // Smart double quotes
-			   (quoteChar == '\u2018' && ch == '\u2019') || // Smart single quotes
-			   (quoteChar == '\u2039' && ch == '\u203A') || // Single angle quotes
-			   (quoteChar == '\u00AB' && ch == '\u00BB') || // Double angle quotes
-			   isCloseQuote { // Any closing quote
+				(quoteChar == '\'' && ch == '\'') || // ASCII single quote
+				(quoteChar == '\u201C' && ch == '\u201D') || // Smart double quotes
+				(quoteChar == '\u2018' && ch == '\u2019') || // Smart single quotes
+				(quoteChar == '\u2039' && ch == '\u203A') || // Single angle quotes
+				(quoteChar == '\u00AB' && ch == '\u00BB') || // Double angle quotes
+				isCloseQuote { // Any closing quote
 				inQuotes = false
 				quoteChar = 0
 				continue
 			}
 		}
-		
+
 		if ch == ' ' && !inQuotes {
 			if current.Len() > 0 {
 				tokens = append(tokens, current.String())
@@ -848,17 +848,17 @@ func parseKeyValueArgs(args []string) map[string]string {
 			}
 			continue
 		}
-		
+
 		current.WriteRune(ch)
 	}
-	
+
 	if current.Len() > 0 {
 		tokens = append(tokens, current.String())
 	}
-	
+
 	// Debug: log tokens
 	fmt.Printf("DEBUG: Tokens: %v\n", tokens)
-	
+
 	// Now parse each token as key=value
 	for _, token := range tokens {
 		parts := strings.SplitN(token, "=", 2)
@@ -871,7 +871,7 @@ func parseKeyValueArgs(args []string) map[string]string {
 			fmt.Printf("DEBUG: Parsed %s = %s\n", key, value)
 		}
 	}
-	
+
 	return params
 }
 
@@ -883,7 +883,7 @@ func handleRevokeRequest(ctx context.Context, adminID, adminName string, argsTex
 	}
 
 	requestID := args[0]
-	
+
 	// Extract reason from remaining args (default if not provided)
 	reason := "Revoked by administrator"
 	if len(args) > 1 {
@@ -926,20 +926,20 @@ func handleRevokeRequest(ctx context.Context, adminID, adminName string, argsTex
 // handleAddApprovalGroup adds a new approval group
 func handleAddApprovalGroup(ctx context.Context, adminID, adminName string, argsText string) (events.APIGatewayProxyResponse, error) {
 	params := parseKeyValueArgs([]string{argsText})
-	
+
 	groupID := params["group_id"]
 	groupName := params["name"]
 	groupType := params["type"]
-	
+
 	if groupID == "" || groupName == "" || groupType == "" {
 		return slackResponse("❌ *Missing Parameters*\n\nUsage: `/ssm-admin add-approval-group group_id=<slack_group_id> name=<name> type=<security|manager>`\n\nExample: `/ssm-admin add-approval-group group_id=S12345678 name=\"Security Team\" type=security`")
 	}
-	
+
 	// Validate type
 	if groupType != "security" && groupType != "manager" {
 		return slackResponse("❌ *Invalid Type*\n\nType must be either `security` or `manager`")
 	}
-	
+
 	// Get Slack group handle
 	handle, err := slackClient.GetUserGroupHandle(ctx, groupID)
 	if err != nil {
@@ -948,7 +948,7 @@ func handleAddApprovalGroup(ctx context.Context, adminID, adminName string, args
 		})
 		return slackResponse(fmt.Sprintf("❌ *Failed to Get Slack Group*\n\nCould not find Slack user group with ID `%s`. Please verify the group ID is correct.", groupID))
 	}
-	
+
 	// Create approval group
 	group := &models.ApprovalGroup{
 		GroupID:     groupID,
@@ -960,7 +960,7 @@ func handleAddApprovalGroup(ctx context.Context, adminID, adminName string, args
 		AddedAt:     time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	err = approvalGroupService.AddGroup(ctx, group, adminID, adminName)
 	if err != nil {
 		logger.LogError(ctx, "add_approval_group", err, map[string]interface{}{
@@ -969,7 +969,7 @@ func handleAddApprovalGroup(ctx context.Context, adminID, adminName string, args
 		})
 		return slackResponse(fmt.Sprintf("❌ *Failed to Add Approval Group*\n\n%s", err.Error()))
 	}
-	
+
 	return slackResponse(fmt.Sprintf("✅ *Approval Group Added*\n\n"+
 		"*Name:* %s\n"+
 		"*Type:* %s\n"+
@@ -989,13 +989,13 @@ func handleListApprovalGroups(ctx context.Context) (events.APIGatewayProxyRespon
 		logger.LogError(ctx, "list_approval_groups", err, map[string]interface{}{})
 		return slackResponse("❌ *Failed to List Approval Groups*\n\nPlease try again later.")
 	}
-	
+
 	if len(groups) == 0 {
 		return slackResponse("📋 *Approval Groups*\n\nNo approval groups configured.")
 	}
-	
+
 	message := "📋 *Approval Groups*\n\n"
-	
+
 	// Security groups
 	message += "*Security Groups:*\n"
 	hasSecurityGroups := false
@@ -1014,7 +1014,7 @@ func handleListApprovalGroups(ctx context.Context) (events.APIGatewayProxyRespon
 		message += "• None configured\n"
 	}
 	message += "\n"
-	
+
 	// Manager groups
 	message += "*Manager Groups:*\n"
 	hasManagerGroups := false
@@ -1032,34 +1032,34 @@ func handleListApprovalGroups(ctx context.Context) (events.APIGatewayProxyRespon
 	if !hasManagerGroups {
 		message += "• None configured\n"
 	}
-	
+
 	return slackResponse(message)
 }
 
 // handleUpdateApprovalGroup updates an approval group
 func handleUpdateApprovalGroup(ctx context.Context, adminID, adminName string, argsText string) (events.APIGatewayProxyResponse, error) {
 	params := parseKeyValueArgs([]string{argsText})
-	
+
 	groupID := params["group_id"]
 	if groupID == "" {
 		return slackResponse("❌ *Missing Parameter*\n\nUsage: `/ssm-admin update-approval-group group_id=<id> [name=<name>] [active=<true|false>]`\n\nExample: `/ssm-admin update-approval-group group_id=S12345678 name=\"New Name\" active=true`")
 	}
-	
+
 	updates := make(map[string]interface{})
-	
+
 	if name, ok := params["name"]; ok && name != "" {
 		updates["group_name"] = name
 	}
-	
+
 	if activeStr, ok := params["active"]; ok && activeStr != "" {
 		active := activeStr == "true"
 		updates["active"] = active
 	}
-	
+
 	if len(updates) == 0 {
 		return slackResponse("❌ *No Updates Specified*\n\nPlease specify at least one field to update: `name` or `active`")
 	}
-	
+
 	err := approvalGroupService.UpdateGroup(ctx, groupID, updates, adminID, adminName)
 	if err != nil {
 		logger.LogError(ctx, "update_approval_group", err, map[string]interface{}{
@@ -1068,7 +1068,7 @@ func handleUpdateApprovalGroup(ctx context.Context, adminID, adminName string, a
 		})
 		return slackResponse(fmt.Sprintf("❌ *Failed to Update Approval Group*\n\n%s", err.Error()))
 	}
-	
+
 	return slackResponse(fmt.Sprintf("✅ *Approval Group Updated*\n\nGroup `%s` has been updated successfully.", groupID))
 }
 
@@ -1078,9 +1078,9 @@ func handleRemoveApprovalGroup(ctx context.Context, adminID, adminName string, a
 	if len(args) < 1 {
 		return slackResponse("❌ *Missing Parameter*\n\nUsage: `/ssm-admin remove-approval-group <group_id>`\n\nExample: `/ssm-admin remove-approval-group S12345678`")
 	}
-	
+
 	groupID := args[0]
-	
+
 	// Confirm group exists
 	group, err := approvalGroupService.GetGroup(ctx, groupID)
 	if err != nil {
@@ -1089,7 +1089,7 @@ func handleRemoveApprovalGroup(ctx context.Context, adminID, adminName string, a
 		})
 		return slackResponse(fmt.Sprintf("❌ *Group Not Found*\n\nCould not find approval group with ID `%s`", groupID))
 	}
-	
+
 	err = approvalGroupService.RemoveGroup(ctx, groupID, adminID, adminName)
 	if err != nil {
 		logger.LogError(ctx, "remove_approval_group", err, map[string]interface{}{
@@ -1098,42 +1098,42 @@ func handleRemoveApprovalGroup(ctx context.Context, adminID, adminName string, a
 		})
 		return slackResponse(fmt.Sprintf("❌ *Failed to Remove Approval Group*\n\n%s", err.Error()))
 	}
-	
+
 	return slackResponse(fmt.Sprintf("✅ *Approval Group Removed*\n\n%s (%s) has been removed.", group.GroupName, group.SlackHandle))
 }
 
 // handleAuditLogs generates a CloudWatch Logs Insights query for audit logs
 func handleAuditLogs(ctx context.Context, argsText string) (events.APIGatewayProxyResponse, error) {
 	params := parseKeyValueArgs([]string{argsText})
-	
+
 	// Build CloudWatch Logs Insights query
 	query := "fields @timestamp, event_type, actor.user_id, actor.user_name, target.request_id, details\n| sort @timestamp desc"
-	
+
 	// Add filters based on parameters
 	filters := []string{}
-	
+
 	if requestID, ok := params["request_id"]; ok && requestID != "" {
 		filters = append(filters, fmt.Sprintf("target.request_id = \"%s\"", requestID))
 	}
-	
+
 	if userID, ok := params["user_id"]; ok && userID != "" {
 		filters = append(filters, fmt.Sprintf("actor.user_id = \"%s\"", userID))
 	}
-	
+
 	if eventType, ok := params["event_type"]; ok && eventType != "" {
 		filters = append(filters, fmt.Sprintf("event_type = \"%s\"", eventType))
 	}
-	
+
 	if len(filters) > 0 {
 		query = "fields @timestamp, event_type, actor.user_id, actor.user_name, target.request_id, details\n| filter " + strings.Join(filters, " and ") + "\n| sort @timestamp desc"
 	}
-	
+
 	// Get log group name from environment
 	logGroup := os.Getenv("AUDIT_LOG_GROUP")
 	if logGroup == "" {
 		logGroup = "/aws/ssm-access-manager/audit"
 	}
-	
+
 	message := "📊 *Audit Logs Query*\n\n"
 	message += "*CloudWatch Logs Insights Query:*\n"
 	message += "```\n" + query + "\n```\n\n"
@@ -1158,7 +1158,7 @@ func handleAuditLogs(ctx context.Context, argsText string) (events.APIGatewayPro
 	message += "`/ssm-admin audit-logs request_id=c75bcdd5-cd44-4048-9c6a-b42e18b8451f`\n"
 	message += "`/ssm-admin audit-logs user_id=U12345678`\n"
 	message += "`/ssm-admin audit-logs event_type=request_approved_security`"
-	
+
 	return slackResponse(message)
 }
 

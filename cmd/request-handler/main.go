@@ -13,11 +13,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	
+
 	"github.com/ssm-access-manager/internal/logging"
 	"github.com/ssm-access-manager/internal/repository"
 	"github.com/ssm-access-manager/internal/service"
@@ -44,7 +44,7 @@ var (
 
 func init() {
 	var err error
-	
+
 	// Initialize logger
 	logger, err = logging.NewProductionLogger()
 	if err != nil {
@@ -56,7 +56,7 @@ func init() {
 	slackSigningSecret := os.Getenv("SLACK_SIGNING_SECRET")
 	slackClient = slack.NewClient(slackBotToken, slackSigningSecret)
 	slackNotifier = slack.NewNotifier(slackClient)
-	
+
 	// Initialize group membership cache with 5-minute TTL
 	groupCache = slack.NewGroupMembershipCache(slackBotToken, 5*time.Minute)
 
@@ -75,7 +75,7 @@ func init() {
 	usersTable := os.Getenv("USERS_TABLE")
 	accountsTable := os.Getenv("ACCOUNTS_TABLE")
 	approvalGroupsTable := os.Getenv("APPROVAL_GROUPS_TABLE")
-	
+
 	requestRepo = repository.NewRequestRepository(dynamoClient, requestsTable)
 	userRepo = repository.NewUserRepository(dynamoClient, usersTable)
 	accountRepo = repository.NewAccountRepository(dynamoClient, accountsTable)
@@ -86,7 +86,7 @@ func init() {
 	authService = service.NewAuthorizationService(userRepo, groupCache, nil)
 	approvalGroupService = service.NewApprovalGroupService(approvalGroupRepo, authService, nil)
 	requestService = service.NewAccessRequestService(requestRepo, validator, authService, nil)
-	
+
 	// Configure self-approval setting (for testing purposes only)
 	// WARNING: Should only be enabled in test/development environments
 	allowSelfApproval := os.Getenv("ALLOW_SELF_APPROVAL")
@@ -113,12 +113,12 @@ type SlackCommand struct {
 
 // InteractionPayload represents a Slack interaction payload
 type InteractionPayload struct {
-	Type        string                 `json:"type"`
-	User        InteractionUser        `json:"user"`
-	View        InteractionView        `json:"view"`
-	Actions     []InteractionAction    `json:"actions"`
-	TriggerID   string                 `json:"trigger_id"`
-	ResponseURL string                 `json:"response_url"`
+	Type        string              `json:"type"`
+	User        InteractionUser     `json:"user"`
+	View        InteractionView     `json:"view"`
+	Actions     []InteractionAction `json:"actions"`
+	TriggerID   string              `json:"trigger_id"`
+	ResponseURL string              `json:"response_url"`
 }
 
 type InteractionUser struct {
@@ -128,9 +128,9 @@ type InteractionUser struct {
 }
 
 type InteractionView struct {
-	ID         string                            `json:"id"`
-	CallbackID string                            `json:"callback_id"`
-	State      InteractionViewState              `json:"state"`
+	ID         string               `json:"id"`
+	CallbackID string               `json:"callback_id"`
+	State      InteractionViewState `json:"state"`
 }
 
 type InteractionViewState struct {
@@ -138,9 +138,9 @@ type InteractionViewState struct {
 }
 
 type InteractionValue struct {
-	Type           string                  `json:"type"`
-	Value          string                  `json:"value"`
-	SelectedOption *InteractionOption      `json:"selected_option"`
+	Type           string             `json:"type"`
+	Value          string             `json:"value"`
+	SelectedOption *InteractionOption `json:"selected_option"`
 }
 
 type InteractionOption struct {
@@ -165,9 +165,9 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if contentType == "" {
 		contentType = request.Headers["Content-Type"]
 	}
-	logger.Info(fmt.Sprintf("Received request: ContentType=%s, Body length=%d, Path=%s", 
+	logger.Info(fmt.Sprintf("Received request: ContentType=%s, Body length=%d, Path=%s",
 		contentType, len(request.Body), request.Path))
-	
+
 	// Log first 200 chars of body for debugging (be careful with sensitive data)
 	bodyPreview := request.Body
 	if len(bodyPreview) > 200 {
@@ -187,11 +187,11 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	for k, v := range request.Headers {
 		headers.Set(k, v)
 	}
-	
-	logger.Info(fmt.Sprintf("Verifying signature with headers: X-Slack-Request-Timestamp=%s, X-Slack-Signature=%s", 
-		request.Headers["x-slack-request-timestamp"], 
+
+	logger.Info(fmt.Sprintf("Verifying signature with headers: X-Slack-Request-Timestamp=%s, X-Slack-Signature=%s",
+		request.Headers["x-slack-request-timestamp"],
 		request.Headers["x-slack-signature"]))
-	
+
 	err := slackClient.VerifySignature(headers, request.Body)
 	if err != nil {
 		logger.Warn(fmt.Sprintf("Invalid Slack signature: %v", err))
@@ -200,9 +200,9 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			Body:       "Unauthorized",
 		}, nil
 	}
-	
+
 	logger.Info("Signature verified successfully")
-	
+
 	// Log the request body type for debugging
 	if strings.Contains(request.Body, "payload=") {
 		logger.Info("Received interaction payload")
@@ -212,7 +212,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	if isModalSubmission(request.Body) {
 		return handleModalSubmission(ctx, request.Body)
 	}
-	
+
 	// Check if this is a button interaction (approve/deny)
 	if isButtonInteraction(request.Body) {
 		return handleButtonInteraction(ctx, request.Body)
@@ -324,7 +324,7 @@ func parseCommandText(text string) map[string]string {
 					} else {
 						// Otherwise, strip the protocol if present
 						value = strings.TrimPrefix(rawValue, "http://")
-						value = strings.TrimPrefix(rawValue, "https://")
+						value = strings.TrimPrefix(value, "https://")
 					}
 				} else {
 					value = rawValue
@@ -347,13 +347,13 @@ func parseCommandText(text string) map[string]string {
 // parseFormEncodedCommand parses form-encoded Slack command
 func parseFormEncodedCommand(body string) (SlackCommand, error) {
 	var cmd SlackCommand
-	
+
 	// Parse URL-encoded form data
 	values, err := url.ParseQuery(body)
 	if err != nil {
 		return cmd, fmt.Errorf("failed to parse form data: %w", err)
 	}
-	
+
 	cmd.Token = values.Get("token")
 	cmd.TeamID = values.Get("team_id")
 	cmd.TeamDomain = values.Get("team_domain")
@@ -365,7 +365,7 @@ func parseFormEncodedCommand(body string) (SlackCommand, error) {
 	cmd.Text = values.Get("text")
 	cmd.ResponseURL = values.Get("response_url")
 	cmd.TriggerID = values.Get("trigger_id")
-	
+
 	return cmd, nil
 }
 
@@ -375,18 +375,18 @@ func isModalSubmission(body string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	payload := values.Get("payload")
 	if payload == "" {
 		return false
 	}
-	
+
 	var interaction InteractionPayload
 	err = json.Unmarshal([]byte(payload), &interaction)
 	if err != nil {
 		return false
 	}
-	
+
 	return interaction.Type == "view_submission" && interaction.View.CallbackID == "ssm_access_request"
 }
 
@@ -397,7 +397,7 @@ func handleURLVerification(body string) (events.APIGatewayProxyResponse, error) 
 		Challenge string `json:"challenge"`
 		Type      string `json:"type"`
 	}
-	
+
 	err := json.Unmarshal([]byte(body), &challenge)
 	if err != nil {
 		return events.APIGatewayProxyResponse{
@@ -405,9 +405,9 @@ func handleURLVerification(body string) (events.APIGatewayProxyResponse, error) 
 			Body:       "Bad Request",
 		}, nil
 	}
-	
+
 	logger.Info(fmt.Sprintf("URL verification challenge received: %s", challenge.Challenge))
-	
+
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Headers: map[string]string{
@@ -423,18 +423,18 @@ func isButtonInteraction(body string) bool {
 	if err != nil {
 		return false
 	}
-	
+
 	payload := values.Get("payload")
 	if payload == "" {
 		return false
 	}
-	
+
 	var interaction InteractionPayload
 	err = json.Unmarshal([]byte(payload), &interaction)
 	if err != nil {
 		return false
 	}
-	
+
 	return interaction.Type == "block_actions"
 }
 
@@ -449,7 +449,7 @@ func handleButtonInteraction(ctx context.Context, body string) (events.APIGatewa
 			Body:       "Bad Request",
 		}, nil
 	}
-	
+
 	payload := values.Get("payload")
 	var interaction InteractionPayload
 	err = json.Unmarshal([]byte(payload), &interaction)
@@ -460,7 +460,7 @@ func handleButtonInteraction(ctx context.Context, body string) (events.APIGatewa
 			Body:       "Bad Request",
 		}, nil
 	}
-	
+
 	// Get the action (approve or deny)
 	if len(interaction.Actions) == 0 {
 		return events.APIGatewayProxyResponse{
@@ -468,13 +468,13 @@ func handleButtonInteraction(ctx context.Context, body string) (events.APIGatewa
 			Body:       "",
 		}, nil
 	}
-	
+
 	action := interaction.Actions[0]
 	requestID := action.Value
-	
-	logger.Info(fmt.Sprintf("Button interaction: action=%s, request_id=%s, user=%s, response_url=%s", 
+
+	logger.Info(fmt.Sprintf("Button interaction: action=%s, request_id=%s, user=%s, response_url=%s",
 		action.ActionID, requestID, interaction.User.ID, interaction.ResponseURL))
-	
+
 	// Handle approve/deny
 	switch action.ActionID {
 	case "approve":
@@ -507,26 +507,26 @@ func handleApproveButton(ctx context.Context, approverID, approverName, requestI
 			"approver_id": approverID,
 			"request_id":  requestID,
 		})
-		
+
 		return sendEphemeralMessage(responseURL, fmt.Sprintf("❌ Failed to get request: %s", err.Error()))
 	}
-	
+
 	// Check if user already provided an approval
 	if accessRequest.SecurityApproverID != nil && *accessRequest.SecurityApproverID == approverID {
 		return sendEphemeralMessage(responseURL, "✅ You already provided security approval for this request")
 	}
-	
+
 	if accessRequest.ManagerApproverID != nil && *accessRequest.ManagerApproverID == approverID {
 		return sendEphemeralMessage(responseURL, "✅ You already provided manager approval for this request")
 	}
-	
+
 	// Get security group
 	securityGroup, err := approvalGroupService.GetSecurityGroup(ctx)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get security group: %v", err))
 		return sendEphemeralMessage(responseURL, "❌ Failed to check authorization: security group not configured")
 	}
-	
+
 	// Check if user is member of security group
 	isSecurityMember, err := authService.IsGroupMember(ctx, securityGroup.GroupID, approverID)
 	if err != nil {
@@ -534,7 +534,7 @@ func handleApproveButton(ctx context.Context, approverID, approverName, requestI
 		isSecurityMember = false
 	}
 	logger.Info(fmt.Sprintf("Security group membership check: groupID=%s, userID=%s, isMember=%v", securityGroup.GroupID, approverID, isSecurityMember))
-	
+
 	// Check if user is member of request's manager group
 	isManagerMember, err := authService.IsGroupMember(ctx, accessRequest.ManagerGroupID, approverID)
 	if err != nil {
@@ -542,52 +542,52 @@ func handleApproveButton(ctx context.Context, approverID, approverName, requestI
 		isManagerMember = false
 	}
 	logger.Info(fmt.Sprintf("Manager group membership check: groupID=%s, userID=%s, isMember=%v", accessRequest.ManagerGroupID, approverID, isManagerMember))
-	
+
 	// If not member of any group, log unauthorized attempt and return error
 	if !isSecurityMember && !isManagerMember {
 		logger.Info("User is not member of any approval group - unauthorized")
 		authService.LogUnauthorizedAttempt(ctx, approverID, approverName, requestID)
 		return sendEphemeralMessage(responseURL, "❌ You are not authorized to approve this request")
 	}
-	
+
 	// Check if the approval this user can provide is already granted by someone else
 	if isSecurityMember && !isManagerMember && accessRequest.HasSecurityApproval() {
 		// User is only in security group, but security approval already granted by someone else
 		return sendEphemeralMessage(responseURL, fmt.Sprintf("✅ Security approval already granted by %s", *accessRequest.SecurityApproverName))
 	}
-	
+
 	if isManagerMember && !isSecurityMember && accessRequest.HasManagerApproval() {
 		// User is only in manager group, but manager approval already granted by someone else
 		return sendEphemeralMessage(responseURL, fmt.Sprintf("✅ Manager approval already granted by %s", *accessRequest.ManagerApproverName))
 	}
-	
+
 	// If member of BOTH groups, show approval type selection
 	if isSecurityMember && isManagerMember {
 		logger.Info("User is member of BOTH groups - showing approval type selection")
 		needsSecurity := !accessRequest.HasSecurityApproval()
 		needsManager := !accessRequest.HasManagerApproval()
 		logger.Info(fmt.Sprintf("Approval status: needsSecurity=%v, needsManager=%v", needsSecurity, needsManager))
-		
+
 		// Check if both approvals already granted
 		if !needsSecurity && !needsManager {
 			return sendEphemeralMessage(responseURL, "✅ Both approvals already granted for this request")
 		}
-		
+
 		return showApprovalTypeSelection(ctx, requestID, needsSecurity, needsManager, responseURL, securityGroup.GroupName, accessRequest.ManagerGroupName)
 	}
-	
+
 	// If member of only security group, call ApproveRequestSecurity
 	if isSecurityMember {
 		logger.Info("User is member of security group only - calling handleApproveSecurityButton")
 		return handleApproveSecurityButton(ctx, approverID, approverName, requestID, responseURL)
 	}
-	
+
 	// If member of only manager group, call ApproveRequestManager
 	if isManagerMember {
 		logger.Info("User is member of manager group only - calling handleApproveManagerButton")
 		return handleApproveManagerButton(ctx, approverID, approverName, requestID, responseURL)
 	}
-	
+
 	// Should never reach here
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
@@ -598,33 +598,32 @@ func handleApproveButton(ctx context.Context, approverID, approverName, requestI
 	}, nil
 }
 
-
 // showApprovalTypeSelection shows buttons for user to choose approval type
 func showApprovalTypeSelection(ctx context.Context, requestID string, needsSecurity, needsManager bool, responseURL, securityGroupName, managerGroupName string) (events.APIGatewayProxyResponse, error) {
 	message := "You are a member of both approval groups. Please select which approval to provide:"
-	
+
 	// Build response structure
 	type SlackButton struct {
-		Type     string                 `json:"type"`
-		Text     map[string]string      `json:"text"`
-		ActionID string                 `json:"action_id"`
-		Value    string                 `json:"value"`
-		Style    string                 `json:"style"`
+		Type     string            `json:"type"`
+		Text     map[string]string `json:"text"`
+		ActionID string            `json:"action_id"`
+		Value    string            `json:"value"`
+		Style    string            `json:"style"`
 	}
-	
+
 	type SlackBlock struct {
-		Type     string                 `json:"type"`
-		Text     map[string]string      `json:"text,omitempty"`
-		Elements []SlackButton          `json:"elements,omitempty"`
+		Type     string            `json:"type"`
+		Text     map[string]string `json:"text,omitempty"`
+		Elements []SlackButton     `json:"elements,omitempty"`
 	}
-	
+
 	type SlackResponse struct {
 		ReplaceOriginal bool         `json:"replace_original"`
 		ResponseType    string       `json:"response_type"`
 		Text            string       `json:"text"`
 		Blocks          []SlackBlock `json:"blocks"`
 	}
-	
+
 	var buttons []SlackButton
 	if needsSecurity {
 		buttons = append(buttons, SlackButton{
@@ -644,13 +643,13 @@ func showApprovalTypeSelection(ctx context.Context, requestID string, needsSecur
 			Style:    "primary",
 		})
 	}
-	
+
 	// First, update the original message to remove buttons (replace with "Processing...")
 	replaceResponse := SlackResponse{
 		ReplaceOriginal: true,
 		Text:            "⏳ Processing your approval...",
 	}
-	
+
 	replaceBody, err := json.Marshal(replaceResponse)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to marshal replace response: %v", err))
@@ -660,11 +659,11 @@ func showApprovalTypeSelection(ctx context.Context, requestID string, needsSecur
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to post replace message: %v", err))
 		} else {
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 			logger.Info(fmt.Sprintf("Replaced original message, status: %d", resp.StatusCode))
 		}
 	}
-	
+
 	// Then, send ephemeral message with approval type selection
 	response := SlackResponse{
 		ReplaceOriginal: false,
@@ -681,7 +680,7 @@ func showApprovalTypeSelection(ctx context.Context, requestID string, needsSecur
 			},
 		},
 	}
-	
+
 	responseBody, err := json.Marshal(response)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to marshal approval type selection response: %v", err))
@@ -693,18 +692,18 @@ func showApprovalTypeSelection(ctx context.Context, requestID string, needsSecur
 			Body: `{"text": "❌ Internal error"}`,
 		}, nil
 	}
-	
+
 	logger.Info(fmt.Sprintf("Posting approval type selection to response_url: %s", responseURL))
-	
+
 	// Post to response_url using HTTP client
 	resp, err := http.Post(responseURL, "application/json", strings.NewReader(string(responseBody)))
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to post to response_url: %v", err))
 	} else {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		logger.Info(fmt.Sprintf("Posted to response_url, status: %d", resp.StatusCode))
 	}
-	
+
 	// Return empty 200 response to acknowledge the button click
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
@@ -716,9 +715,9 @@ func showApprovalTypeSelection(ctx context.Context, requestID string, needsSecur
 func handleApproveSecurityButton(ctx context.Context, approverID, approverName, requestID, responseURL string) (events.APIGatewayProxyResponse, error) {
 	// Send immediate feedback via ephemeral message
 	go func() {
-		sendEphemeralMessage(responseURL, "⏳ Processing your security approval...")
+		_, _ = sendEphemeralMessage(responseURL, "⏳ Processing your security approval...")
 	}()
-	
+
 	// Call ApproveRequestSecurity service method
 	accessRequest, err := requestService.ApproveRequestSecurity(ctx, requestID, approverID, approverName)
 	if err != nil {
@@ -726,20 +725,20 @@ func handleApproveSecurityButton(ctx context.Context, approverID, approverName, 
 			"approver_id": approverID,
 			"request_id":  requestID,
 		})
-		
+
 		// Check if this is a self-approval error and display the specific message
 		errorMsg := "❌ Failed to approve request"
 		if err.Error() == "you cannot approve your own access request" {
 			errorMsg = "❌ You cannot approve your own access request"
 		}
-		
+
 		return sendEphemeralMessage(responseURL, errorMsg)
 	}
-	
+
 	// Determine status for message updates
 	var status string
 	var confirmationMsg string
-	
+
 	if accessRequest.IsApproved() {
 		status = "fully_approved"
 		confirmationMsg = fmt.Sprintf("✅ *Security Approval Recorded*\n\n"+
@@ -756,13 +755,13 @@ func handleApproveSecurityButton(ctx context.Context, approverID, approverName, 
 			accessRequest.AccountID,
 			accessRequest.ExpirationDate.Format("2006-01-02 15:04 MST"),
 			requestID)
-		
+
 		// Publish event for document creation
 		err = publishApprovalEvent(ctx, requestID)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to publish approval event: %v", err))
 		}
-		
+
 		// Send confirmation to requester
 		err = slackNotifier.SendApprovalConfirmation(ctx, accessRequest.UserID, accessRequest)
 		if err != nil {
@@ -785,20 +784,20 @@ func handleApproveSecurityButton(ctx context.Context, approverID, approverName, 
 			accessRequest.AccountID,
 			accessRequest.ExpirationDate.Format("2006-01-02 15:04 MST"),
 			requestID)
-		
+
 		// Send status update to requester
 		err = slackNotifier.SendApprovalStatusUpdate(ctx, accessRequest)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to send approval status update: %v", err))
 		}
 	}
-	
+
 	// Update messages for all approvers
 	err = slackNotifier.UpdateApprovalMessages(ctx, accessRequest, status)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to update approval messages: %v", err))
 	}
-	
+
 	// Send success confirmation via ephemeral message
 	return sendEphemeralMessage(responseURL, confirmationMsg)
 }
@@ -807,9 +806,9 @@ func handleApproveSecurityButton(ctx context.Context, approverID, approverName, 
 func handleApproveManagerButton(ctx context.Context, approverID, approverName, requestID, responseURL string) (events.APIGatewayProxyResponse, error) {
 	// Send immediate feedback via ephemeral message
 	go func() {
-		sendEphemeralMessage(responseURL, "⏳ Processing your manager approval...")
+		_, _ = sendEphemeralMessage(responseURL, "⏳ Processing your manager approval...")
 	}()
-	
+
 	// Call ApproveRequestManager service method
 	accessRequest, err := requestService.ApproveRequestManager(ctx, requestID, approverID, approverName)
 	if err != nil {
@@ -817,20 +816,20 @@ func handleApproveManagerButton(ctx context.Context, approverID, approverName, r
 			"approver_id": approverID,
 			"request_id":  requestID,
 		})
-		
+
 		// Check if this is a self-approval error and display the specific message
 		errorMsg := "❌ Failed to approve request"
 		if err.Error() == "you cannot approve your own access request" {
 			errorMsg = "❌ You cannot approve your own access request"
 		}
-		
+
 		return sendEphemeralMessage(responseURL, errorMsg)
 	}
-	
+
 	// Determine status for message updates
 	var status string
 	var confirmationMsg string
-	
+
 	if accessRequest.IsApproved() {
 		status = "fully_approved"
 		confirmationMsg = fmt.Sprintf("✅ *Manager Approval Recorded*\n\n"+
@@ -847,13 +846,13 @@ func handleApproveManagerButton(ctx context.Context, approverID, approverName, r
 			accessRequest.AccountID,
 			accessRequest.ExpirationDate.Format("2006-01-02 15:04 MST"),
 			requestID)
-		
+
 		// Publish event for document creation
 		err = publishApprovalEvent(ctx, requestID)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to publish approval event: %v", err))
 		}
-		
+
 		// Send confirmation to requester
 		err = slackNotifier.SendApprovalConfirmation(ctx, accessRequest.UserID, accessRequest)
 		if err != nil {
@@ -875,20 +874,20 @@ func handleApproveManagerButton(ctx context.Context, approverID, approverName, r
 			accessRequest.AccountID,
 			accessRequest.ExpirationDate.Format("2006-01-02 15:04 MST"),
 			requestID)
-		
+
 		// Send status update to requester
 		err = slackNotifier.SendApprovalStatusUpdate(ctx, accessRequest)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to send approval status update: %v", err))
 		}
 	}
-	
+
 	// Update messages for all approvers
 	err = slackNotifier.UpdateApprovalMessages(ctx, accessRequest, status)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to update approval messages: %v", err))
 	}
-	
+
 	// Send success confirmation via ephemeral message
 	return sendEphemeralMessage(responseURL, confirmationMsg)
 }
@@ -896,12 +895,12 @@ func handleApproveManagerButton(ctx context.Context, approverID, approverName, r
 // handleDenyButton handles the deny button click
 func handleDenyButton(ctx context.Context, approverID, approverName, requestID, responseURL string) (events.APIGatewayProxyResponse, error) {
 	logger.Info(fmt.Sprintf("handleDenyButton called: approverID=%s, requestID=%s", approverID, requestID))
-	
+
 	// Send immediate feedback via ephemeral message
 	go func() {
-		sendEphemeralMessage(responseURL, "⏳ Processing denial...")
+		_, _ = sendEphemeralMessage(responseURL, "⏳ Processing denial...")
 	}()
-	
+
 	// Get the request
 	accessRequest, err := requestService.GetRequest(ctx, requestID)
 	if err != nil {
@@ -909,13 +908,13 @@ func handleDenyButton(ctx context.Context, approverID, approverName, requestID, 
 			"approver_id": approverID,
 			"request_id":  requestID,
 		})
-		
+
 		return sendEphemeralMessage(responseURL, fmt.Sprintf("❌ Failed to get request: %s", err.Error()))
 	}
-	
+
 	// Check authorization - allow denial from either security or manager group members
 	authorized := false
-	
+
 	// Get security group
 	securityGroup, err := approvalGroupService.GetSecurityGroup(ctx)
 	if err == nil {
@@ -924,7 +923,7 @@ func handleDenyButton(ctx context.Context, approverID, approverName, requestID, 
 			authorized = true
 		}
 	}
-	
+
 	// Check manager group membership
 	if !authorized {
 		isManagerMember, err := authService.IsGroupMember(ctx, accessRequest.ManagerGroupID, approverID)
@@ -932,15 +931,15 @@ func handleDenyButton(ctx context.Context, approverID, approverName, requestID, 
 			authorized = true
 		}
 	}
-	
+
 	if !authorized {
 		authService.LogUnauthorizedAttempt(ctx, approverID, approverName, requestID)
 		return sendEphemeralMessage(responseURL, "❌ You are not authorized to deny this request")
 	}
-	
+
 	// Deny the request with a default reason
 	reason := "Denied via Slack button"
-	
+
 	logger.Info("Calling requestService.DenyRequest")
 	accessRequest, err = requestService.DenyRequest(ctx, requestID, approverID, approverName, reason)
 	if err != nil {
@@ -948,26 +947,26 @@ func handleDenyButton(ctx context.Context, approverID, approverName, requestID, 
 			"approver_id": approverID,
 			"request_id":  requestID,
 		})
-		
+
 		return sendEphemeralMessage(responseURL, fmt.Sprintf("❌ Failed to deny request: %s", err.Error()))
 	}
-	
+
 	logger.Info("Request denied successfully, sending notification")
-	
+
 	// Send denial notification to requester
 	err = slackNotifier.SendDenialNotification(ctx, accessRequest.UserID, accessRequest, reason)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to send denial notification: %v", err))
 	}
-	
+
 	// Update messages for all approvers
 	err = slackNotifier.UpdateApprovalMessages(ctx, accessRequest, "denied")
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to update approval messages: %v", err))
 	}
-	
+
 	logger.Info("Returning success response")
-	
+
 	// Send detailed denial confirmation
 	confirmationMsg := fmt.Sprintf("✅ *Request Denied*\n\n"+
 		"*Request Details:*\n"+
@@ -981,7 +980,7 @@ func handleDenyButton(ctx context.Context, approverID, approverName, requestID, 
 		accessRequest.Port,
 		accessRequest.AccountID,
 		requestID)
-	
+
 	return sendEphemeralMessage(responseURL, confirmationMsg)
 }
 
@@ -1018,7 +1017,7 @@ func sendEphemeralMessage(responseURL, message string) (events.APIGatewayProxyRe
 		"response_type": "ephemeral",
 		"text":          message,
 	}
-	
+
 	body, err := json.Marshal(payload)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to marshal ephemeral message: %v", err))
@@ -1027,15 +1026,15 @@ func sendEphemeralMessage(responseURL, message string) (events.APIGatewayProxyRe
 			Body:       "",
 		}, nil
 	}
-	
+
 	resp, err := http.Post(responseURL, "application/json", strings.NewReader(string(body)))
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to post ephemeral message: %v", err))
 	} else {
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		logger.Info(fmt.Sprintf("Posted ephemeral message, status: %d", resp.StatusCode))
 	}
-	
+
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
 		Body:       "",
@@ -1045,12 +1044,12 @@ func sendEphemeralMessage(responseURL, message string) (events.APIGatewayProxyRe
 // handleModalOpen opens the access request modal
 func handleModalOpen(ctx context.Context, cmd SlackCommand) (events.APIGatewayProxyResponse, error) {
 	logger.Info(fmt.Sprintf("Opening modal for user %s, trigger_id: %s", cmd.UserID, cmd.TriggerID))
-	
+
 	// Get active accounts for dropdown
 	accounts, err := accountRepo.ListActiveAccountsForDropdown(ctx)
 	if err != nil {
 		logger.LogError(ctx, "list_accounts", err, map[string]interface{}{})
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
@@ -1059,9 +1058,9 @@ func handleModalOpen(ctx context.Context, cmd SlackCommand) (events.APIGatewayPr
 			Body: `{"response_type": "ephemeral", "text": "❌ Failed to load accounts. Please try again or use the command-line format:\n\n` + "`/ssm-access host=example.com port=8080 account=123456789012`" + `"}`,
 		}, nil
 	}
-	
+
 	logger.Info(fmt.Sprintf("Found %d accounts for dropdown", len(accounts)))
-	
+
 	if len(accounts) == 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
@@ -1071,12 +1070,12 @@ func handleModalOpen(ctx context.Context, cmd SlackCommand) (events.APIGatewayPr
 			Body: `{"response_type": "ephemeral", "text": "❌ No accounts configured. Please contact an administrator to add accounts."}`,
 		}, nil
 	}
-	
+
 	// Get active manager groups for dropdown
 	managerGroups, err := approvalGroupService.ListActiveManagerGroups(ctx)
 	if err != nil {
 		logger.LogError(ctx, "list_manager_groups", err, map[string]interface{}{})
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
@@ -1085,9 +1084,9 @@ func handleModalOpen(ctx context.Context, cmd SlackCommand) (events.APIGatewayPr
 			Body: `{"response_type": "ephemeral", "text": "❌ Failed to load manager groups. Please contact an administrator."}`,
 		}, nil
 	}
-	
+
 	logger.Info(fmt.Sprintf("Found %d manager groups for dropdown", len(managerGroups)))
-	
+
 	if len(managerGroups) == 0 {
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
@@ -1097,19 +1096,19 @@ func handleModalOpen(ctx context.Context, cmd SlackCommand) (events.APIGatewayPr
 			Body: `{"response_type": "ephemeral", "text": "❌ No manager groups configured. Please contact an administrator to configure approval groups."}`,
 		}, nil
 	}
-	
+
 	// Build and open modal
 	logger.Info("Building modal view")
 	view := slack.BuildAccessRequestModal(accounts, managerGroups)
-	
+
 	logger.Info("Calling Slack API to open view")
 	resp, err := slackClient.OpenView(cmd.TriggerID, view)
 	if err != nil {
 		logger.LogError(ctx, "open_modal", err, map[string]interface{}{
-			"user_id": cmd.UserID,
+			"user_id":    cmd.UserID,
 			"trigger_id": cmd.TriggerID,
 		})
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
@@ -1118,9 +1117,9 @@ func handleModalOpen(ctx context.Context, cmd SlackCommand) (events.APIGatewayPr
 			Body: `{"response_type": "ephemeral", "text": "❌ Failed to open modal. Please use the command-line format:\n\n` + "`/ssm-access host=example.com port=8080 account=123456789012`" + `"}`,
 		}, nil
 	}
-	
+
 	logger.Info(fmt.Sprintf("Modal opened successfully, view_id: %s", resp.ID))
-	
+
 	// Return empty 200 response (modal is already open)
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
@@ -1139,7 +1138,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			Body:       "Bad Request",
 		}, nil
 	}
-	
+
 	payload := values.Get("payload")
 	var interaction InteractionPayload
 	err = json.Unmarshal([]byte(payload), &interaction)
@@ -1150,38 +1149,38 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			Body:       "Bad Request",
 		}, nil
 	}
-	
+
 	// Extract form values
 	stateValues := interaction.View.State.Values
-	
+
 	accountID := ""
 	if accountBlock, ok := stateValues["account_block"]; ok {
 		if accountSelect, ok := accountBlock["account_select"]; ok && accountSelect.SelectedOption != nil {
 			accountID = accountSelect.SelectedOption.Value
 		}
 	}
-	
+
 	host := ""
 	if hostBlock, ok := stateValues["host_block"]; ok {
 		if hostInput, ok := hostBlock["host_input"]; ok {
 			host = hostInput.Value
 		}
 	}
-	
+
 	portStr := ""
 	if portBlock, ok := stateValues["port_block"]; ok {
 		if portInput, ok := portBlock["port_input"]; ok {
 			portStr = portInput.Value
 		}
 	}
-	
+
 	expiresStr := ""
 	if expiresBlock, ok := stateValues["expires_block"]; ok {
 		if expiresInput, ok := expiresBlock["expires_input"]; ok {
 			expiresStr = expiresInput.Value
 		}
 	}
-	
+
 	managerGroupID := ""
 	managerGroupName := ""
 	if managerGroupBlock, ok := stateValues["manager_group_block"]; ok {
@@ -1190,17 +1189,17 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			managerGroupName = managerGroupSelect.SelectedOption.Text.Text
 		}
 	}
-	
+
 	reason := ""
 	if reasonBlock, ok := stateValues["reason_block"]; ok {
 		if reasonInput, ok := reasonBlock["reason_input"]; ok {
 			reason = reasonInput.Value
 		}
 	}
-	
+
 	// Convert port to int
 	port, _ := strconv.Atoi(portStr)
-	
+
 	// Parse expiration date
 	var expirationDate time.Time
 	if expiresStr != "" {
@@ -1219,7 +1218,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 		// Default to 14 days from now
 		expirationDate = time.Now().AddDate(0, 0, 14)
 	}
-	
+
 	// Validate parameters
 	valid, missingFields := requestService.ValidateRequestParameters(host, port, accountID, expirationDate)
 	if !valid {
@@ -1236,12 +1235,12 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 				errors["expires_block"] = field
 			}
 		}
-		
+
 		errorsJSON, _ := json.Marshal(map[string]interface{}{
 			"response_action": "errors",
 			"errors":          errors,
 		})
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
@@ -1250,7 +1249,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			Body: string(errorsJSON),
 		}, nil
 	}
-	
+
 	// Validate manager group selection
 	if managerGroupID == "" || managerGroupName == "" {
 		return events.APIGatewayProxyResponse{
@@ -1261,7 +1260,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			Body: `{"response_action": "errors", "errors": {"manager_group_block": "Manager group selection is required"}}`,
 		}, nil
 	}
-	
+
 	// Validate reason field
 	if strings.TrimSpace(reason) == "" {
 		return events.APIGatewayProxyResponse{
@@ -1272,7 +1271,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			Body: `{"response_action": "errors", "errors": {"reason_block": "Reason is required"}}`,
 		}, nil
 	}
-	
+
 	// Get username
 	username := interaction.User.Username
 	if username == "" {
@@ -1281,7 +1280,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 	if username == "" {
 		username = interaction.User.ID
 	}
-	
+
 	// Create access request
 	accessRequest, err := requestService.CreateRequest(
 		ctx,
@@ -1301,7 +1300,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			"host":    host,
 			"port":    port,
 		})
-		
+
 		// Return error in modal
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
@@ -1311,27 +1310,27 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 			Body: fmt.Sprintf(`{"response_action": "errors", "errors": {"host_block": "Failed to create request: %s"}}`, err.Error()),
 		}, nil
 	}
-	
+
 	// Log the request
 	logger.LogAccessRequest(ctx, accessRequest.RequestID, username, interaction.User.ID, host, port, accountID, expirationDate)
-	
+
 	// Send approval requests to groups
 	securityGroup, err := approvalGroupService.GetSecurityGroup(ctx)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get security group: %v", err))
 	}
-	
+
 	managerGroup, err := approvalGroupService.GetGroup(ctx, accessRequest.ManagerGroupID)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get manager group: %v", err))
 	}
-	
+
 	if securityGroup != nil && managerGroup != nil {
 		timestamps, err := slackNotifier.SendApprovalRequestToGroups(ctx, accessRequest, securityGroup, managerGroup, groupCache)
 		if err != nil {
 			logger.Error(fmt.Sprintf("failed to send approval request to groups: %v", err))
 		}
-		
+
 		if len(timestamps) > 0 {
 			// Store message timestamps for later updates
 			accessRequest.ApprovalMessageTimestamps = timestamps
@@ -1342,23 +1341,23 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 				logger.Info(fmt.Sprintf("Stored %d message timestamps for request %s", len(timestamps), accessRequest.RequestID))
 			}
 		} else {
-			logger.Error(fmt.Sprintf("WARNING: No approval messages were sent for request %s. Security group: %s (%s), Manager group: %s (%s)", 
-				accessRequest.RequestID, 
-				securityGroup.GroupName, 
+			logger.Error(fmt.Sprintf("WARNING: No approval messages were sent for request %s. Security group: %s (%s), Manager group: %s (%s)",
+				accessRequest.RequestID,
+				securityGroup.GroupName,
 				securityGroup.GroupID,
 				managerGroup.GroupName,
 				managerGroup.GroupID))
 		}
 	} else {
-		logger.Error(fmt.Sprintf("WARNING: Cannot send approval messages for request %s. Security group exists: %v, Manager group exists: %v", 
-			accessRequest.RequestID, 
+		logger.Error(fmt.Sprintf("WARNING: Cannot send approval messages for request %s. Security group exists: %v, Manager group exists: %v",
+			accessRequest.RequestID,
 			securityGroup != nil,
 			managerGroup != nil))
 	}
-	
+
 	// Send confirmation to user
 	_ = slackNotifier.SendRequestConfirmation(ctx, interaction.User.ID, accessRequest)
-	
+
 	// Return success (closes modal)
 	return events.APIGatewayProxyResponse{
 		StatusCode: 200,
@@ -1373,7 +1372,7 @@ func handleModalSubmission(ctx context.Context, body string) (events.APIGatewayP
 func handleCommandLineRequest(ctx context.Context, cmd SlackCommand) (events.APIGatewayProxyResponse, error) {
 	// Parse command parameters
 	params := parseCommandText(cmd.Text)
-	
+
 	host := params["host"]
 	portStr := params["port"]
 	accountID := params["account"]
@@ -1381,7 +1380,7 @@ func handleCommandLineRequest(ctx context.Context, cmd SlackCommand) (events.API
 	reason := params["reason"]
 
 	// Log parsed parameters for debugging
-	logger.Info(fmt.Sprintf("Parsed parameters: host='%s' (len=%d), port='%s', account='%s', expires='%s', reason='%s'", 
+	logger.Info(fmt.Sprintf("Parsed parameters: host='%s' (len=%d), port='%s', account='%s', expires='%s', reason='%s'",
 		host, len(host), portStr, accountID, expiresStr, reason))
 
 	// Convert port to int
@@ -1404,23 +1403,23 @@ func handleCommandLineRequest(ctx context.Context, cmd SlackCommand) (events.API
 
 	// Validate parameters
 	valid, missingFields := requestService.ValidateRequestParameters(host, port, accountID, expirationDate)
-	
+
 	// Add reason to validation
 	if strings.TrimSpace(reason) == "" {
 		valid = false
 		missingFields = append(missingFields, "reason")
 	}
-	
+
 	if !valid {
 		logger.Info(fmt.Sprintf("Validation failed. Missing fields: %v", missingFields))
-		
+
 		// Return immediate response to Slack (must respond within 3 seconds)
 		// Build error message
 		fieldsText := ""
 		for _, field := range missingFields {
 			fieldsText += fmt.Sprintf("• %s\n", field)
 		}
-		
+
 		responseText := fmt.Sprintf("❌ *Missing Required Fields*\n\n"+
 			"Your access request is missing the following required fields:\n\n"+
 			"%s\n"+
@@ -1428,7 +1427,7 @@ func handleCommandLineRequest(ctx context.Context, cmd SlackCommand) (events.API
 			"*Note:* If expires is not provided, it defaults to 14 days from now.",
 			fieldsText,
 		)
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
@@ -1463,9 +1462,9 @@ func handleCommandLineRequest(ctx context.Context, cmd SlackCommand) (events.API
 			"host":    host,
 			"port":    port,
 		})
-		
+
 		errMsg := fmt.Sprintf("❌ Failed to create access request: %s", err.Error())
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Headers: map[string]string{
@@ -1482,7 +1481,7 @@ func handleCommandLineRequest(ctx context.Context, cmd SlackCommand) (events.API
 	admins, err := authService.GetAllAdministrators(ctx)
 	if err != nil {
 		logger.Error(fmt.Sprintf("failed to get administrators: %v", err))
-		
+
 		// Still return success to user, but log the error
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,

@@ -11,11 +11,11 @@ import (
 
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge"
 	"github.com/aws/aws-sdk-go-v2/service/eventbridge/types"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	
+
 	"github.com/ssm-access-manager/internal/logging"
 	"github.com/ssm-access-manager/internal/models"
 	"github.com/ssm-access-manager/internal/repository"
@@ -26,20 +26,20 @@ import (
 )
 
 var (
-	logger              *logging.Logger
-	slackClient         *slack.Client
-	slackNotifier       *slack.Notifier
-	interactionHandler  *slack.InteractionHandler
-	requestService      *service.AccessRequestService
-	authService         *service.AuthorizationService
-	requestRepo         *repository.RequestRepository
-	userRepo            *repository.UserRepository
-	eventBridgeClient   *eventbridge.Client
+	logger             *logging.Logger
+	slackClient        *slack.Client
+	slackNotifier      *slack.Notifier
+	interactionHandler *slack.InteractionHandler
+	requestService     *service.AccessRequestService
+	authService        *service.AuthorizationService
+	requestRepo        *repository.RequestRepository
+	userRepo           *repository.UserRepository
+	eventBridgeClient  *eventbridge.Client
 )
 
 func init() {
 	var err error
-	
+
 	// Initialize logger
 	logger, err = logging.NewProductionLogger()
 	if err != nil {
@@ -66,15 +66,15 @@ func init() {
 	// Initialize repositories
 	requestsTable := os.Getenv("REQUESTS_TABLE")
 	usersTable := os.Getenv("USERS_TABLE")
-	
+
 	requestRepo = repository.NewRequestRepository(dynamoClient, requestsTable)
 	userRepo = repository.NewUserRepository(dynamoClient, usersTable)
 
 	// Initialize services
 	validator := validation.NewRequestValidator(90)
-	authService = service.NewAuthorizationService(userRepo, nil, nil) // No group cache or audit service needed for approval handler
+	authService = service.NewAuthorizationService(userRepo, nil, nil)                          // No group cache or audit service needed for approval handler
 	requestService = service.NewAccessRequestService(requestRepo, validator, authService, nil) // No audit service needed
-	
+
 	// Configure self-approval setting (for testing purposes only)
 	// WARNING: Should only be enabled in test/development environments
 	allowSelfApproval := os.Getenv("ALLOW_SELF_APPROVAL")
@@ -90,7 +90,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 	for k, v := range request.Headers {
 		headers.Set(k, v)
 	}
-	
+
 	err := slackClient.VerifySignature(headers, request.Body)
 	if err != nil {
 		logger.Warn("invalid Slack signature")
@@ -168,7 +168,7 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 			"approver_id": approverID,
 			"decision":    decision,
 		})
-		
+
 		return events.APIGatewayProxyResponse{
 			StatusCode: 200,
 			Body:       fmt.Sprintf("Failed to process decision: %s", err.Error()),
@@ -186,8 +186,10 @@ func handler(ctx context.Context, request events.APIGatewayProxyRequest) (events
 
 	// Send notification to user
 	if callback.IsApproval() {
-		err = slackNotifier.SendApprovalConfirmation(ctx, accessRequest.UserID, accessRequest)
-		
+		if err := slackNotifier.SendApprovalConfirmation(ctx, accessRequest.UserID, accessRequest); err != nil {
+			logger.Error("failed to send approval confirmation")
+		}
+
 		// Publish EventBridge event to trigger document creation
 		err = publishApprovalEvent(ctx, accessRequest.RequestID)
 		if err != nil {

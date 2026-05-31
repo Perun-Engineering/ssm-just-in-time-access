@@ -186,7 +186,7 @@ func (n *Notifier) SendErrorNotification(ctx context.Context, userID, errorMessa
 func (n *Notifier) SendRequestConfirmation(ctx context.Context, userID string, request *models.AccessRequest) error {
 	// Build message based on whether it's a new request with manager group or legacy
 	var message string
-	
+
 	if request.ManagerGroupID != "" && request.ManagerGroupName != "" {
 		// New request with manager group selection
 		message = fmt.Sprintf("✅ *Access Request Submitted*\n\n"+
@@ -372,7 +372,7 @@ func (n *Notifier) SendApprovalRequestToGroups(ctx context.Context, request *mod
 			securityMembers = members
 		}
 	}
-	
+
 	// Get manager group members
 	managerMembers := []string{}
 	if managerGroup != nil && groupCache != nil {
@@ -383,7 +383,7 @@ func (n *Notifier) SendApprovalRequestToGroups(ctx context.Context, request *mod
 			managerMembers = members
 		}
 	}
-	
+
 	// Deduplicate members (union of both groups)
 	memberSet := make(map[string]bool)
 	for _, member := range securityMembers {
@@ -392,18 +392,18 @@ func (n *Notifier) SendApprovalRequestToGroups(ctx context.Context, request *mod
 	for _, member := range managerMembers {
 		memberSet[member] = true
 	}
-	
+
 	// Build approval message showing both required approvals
 	securityGroupHandle := ""
 	if securityGroup != nil {
 		securityGroupHandle = securityGroup.SlackHandle
 	}
-	
+
 	managerGroupHandle := ""
 	if managerGroup != nil {
 		managerGroupHandle = managerGroup.SlackHandle
 	}
-	
+
 	blocks := []slack.Block{
 		slack.NewSectionBlock(
 			&slack.TextBlockObject{
@@ -447,7 +447,7 @@ func (n *Notifier) SendApprovalRequestToGroups(ctx context.Context, request *mod
 			).WithStyle(slack.StyleDanger),
 		),
 	}
-	
+
 	// Send to all group members and collect timestamps
 	timestamps := make(map[string]string)
 	for memberID := range memberSet {
@@ -461,14 +461,14 @@ func (n *Notifier) SendApprovalRequestToGroups(ctx context.Context, request *mod
 			timestamps[memberID] = msgRef
 		}
 	}
-	
+
 	return timestamps, nil
 }
 
 // SendApprovalStatusUpdate sends a status update to the requester about approval progress
 func (n *Notifier) SendApprovalStatusUpdate(ctx context.Context, request *models.AccessRequest) error {
 	var message string
-	
+
 	if request.IsApproved() {
 		// Fully approved
 		message = fmt.Sprintf("✅ *Access Request Fully Approved*\n\n"+
@@ -515,14 +515,14 @@ func (n *Notifier) SendApprovalStatusUpdate(ctx context.Context, request *models
 			)
 		}
 	}
-	
+
 	if message != "" {
 		_, _, err := n.client.PostMessage(ctx, request.UserID, slack.MsgOptionText(message, false))
 		if err != nil {
 			return fmt.Errorf("failed to send approval status update: %w", err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -544,15 +544,15 @@ func formatTimestamp(t *time.Time) string {
 
 // UpdateApprovalMessages updates the approval request messages for all approvers
 func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.AccessRequest, status string) error {
-	if request.ApprovalMessageTimestamps == nil || len(request.ApprovalMessageTimestamps) == 0 {
+	if len(request.ApprovalMessageTimestamps) == 0 {
 		fmt.Printf("Warning: No message timestamps to update for request %s\n", request.RequestID)
 		return nil
 	}
-	
+
 	// Build updated message based on status
 	var textMessage string
 	var blocks []slack.Block
-	
+
 	switch status {
 	case "fully_approved":
 		textMessage = fmt.Sprintf("✅ *Request Fully Approved*\n\n"+
@@ -574,7 +574,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 			getStringValue(request.SecurityApproverName),
 			getStringValue(request.ManagerApproverName),
 			request.RequestID)
-		
+
 		// No buttons for fully approved
 		blocks = []slack.Block{
 			slack.NewSectionBlock(
@@ -586,7 +586,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 				nil,
 			),
 		}
-	
+
 	case "security_approved":
 		textMessage = fmt.Sprintf("⏳ *Partially Approved - Waiting for Manager*\n\n"+
 			"Security approval has been granted. Waiting for manager approval.\n\n"+
@@ -607,7 +607,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 			getStringValue(request.SecurityApproverName),
 			request.ManagerGroupName,
 			request.RequestID)
-		
+
 		// Show buttons for manager approval
 		blocks = []slack.Block{
 			slack.NewSectionBlock(
@@ -632,7 +632,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 				).WithStyle(slack.StyleDanger),
 			),
 		}
-	
+
 	case "manager_approved":
 		textMessage = fmt.Sprintf("⏳ *Partially Approved - Waiting for Security*\n\n"+
 			"Manager approval has been granted. Waiting for security approval.\n\n"+
@@ -652,7 +652,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 			request.ExpirationDate.Format("2006-01-02 15:04 MST"),
 			getStringValue(request.ManagerApproverName),
 			request.RequestID)
-		
+
 		// Show buttons for security approval
 		blocks = []slack.Block{
 			slack.NewSectionBlock(
@@ -677,7 +677,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 				).WithStyle(slack.StyleDanger),
 			),
 		}
-	
+
 	case "denied":
 		deniedBy := getStringValue(request.Approver)
 		reason := getStringValue(request.DenialReason)
@@ -698,7 +698,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 			deniedBy,
 			reason,
 			request.RequestID)
-		
+
 		// No buttons for denied
 		blocks = []slack.Block{
 			slack.NewSectionBlock(
@@ -710,11 +710,11 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 				nil,
 			),
 		}
-	
+
 	default:
 		return fmt.Errorf("unknown status: %s", status)
 	}
-	
+
 	// Update message for each approver
 	successCount := 0
 	for userID, msgRef := range request.ApprovalMessageTimestamps {
@@ -724,10 +724,10 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 			fmt.Printf("Warning: Invalid message reference format for %s: %s\n", userID, msgRef)
 			continue
 		}
-		
+
 		channel := parts[0]
 		timestamp := parts[1]
-		
+
 		err := n.client.UpdateMessage(ctx, channel, timestamp, slack.MsgOptionBlocks(blocks...))
 		if err != nil {
 			fmt.Printf("Warning: Failed to update message for %s (channel: %s, timestamp: %s): %v\n", userID, channel, timestamp, err)
@@ -737,7 +737,7 @@ func (n *Notifier) UpdateApprovalMessages(ctx context.Context, request *models.A
 			fmt.Printf("Successfully updated message for %s (channel: %s, timestamp: %s)\n", userID, channel, timestamp)
 		}
 	}
-	
+
 	fmt.Printf("Updated %d/%d approval messages for request %s\n", successCount, len(request.ApprovalMessageTimestamps), request.RequestID)
 	return nil
 }
