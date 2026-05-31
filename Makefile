@@ -1,4 +1,6 @@
-.PHONY: test build clean deploy lint
+.PHONY: test build clean deploy lint deploy-lambdas terraform-init fmt tidy pre-commit test-integration
+
+TF_DIR := infrastructure/terraform
 
 # Build all Lambda functions
 build:
@@ -33,28 +35,33 @@ clean:
 
 # Deploy infrastructure
 deploy:
-	cd infrastructure/terraform && terraform apply
+	cd $(TF_DIR) && terraform apply
 
 # Deploy Lambda functions only (after build)
-deploy-lambdas:
-	@echo "Deploying Lambda functions..."
-	aws lambda update-function-code --function-name test-ssm-request-handler --zip-file fileb://bin/request-handler.zip --region us-east-1
-	aws lambda update-function-code --function-name test-ssm-approval-handler --zip-file fileb://bin/approval-handler.zip --region us-east-1
-	aws lambda update-function-code --function-name test-ssm-document-creator --zip-file fileb://bin/document-creator.zip --region us-east-1
-	aws lambda update-function-code --function-name test-ssm-expiration-cleanup --zip-file fileb://bin/expiration-cleanup.zip --region us-east-1
-	aws lambda update-function-code --function-name test-ssm-admin-handler --zip-file fileb://bin/admin-handler.zip --region us-east-1
-	aws lambda update-function-code --function-name test-ssm-admin-slack-handler --zip-file fileb://bin/admin-slack-handler.zip --region us-east-1
-	@echo "Creating new API Gateway deployment..."
-	aws apigateway create-deployment --rest-api-id 0c2yacisp9 --stage-name test --region us-east-1
-	@echo "Lambda deployment complete!"
+# Deployment targets are read from Terraform outputs so no environment-specific
+# identifiers (function names, API Gateway ID, region) are hardcoded here.
+deploy-lambdas: build
+	@echo "Reading deployment targets from Terraform outputs..."
+	@region=$$(terraform -chdir=$(TF_DIR) output -raw aws_region) && \
+	env=$$(terraform -chdir=$(TF_DIR) output -raw environment) && \
+	api_id=$$(terraform -chdir=$(TF_DIR) output -raw rest_api_id) && \
+	stage=$$(terraform -chdir=$(TF_DIR) output -raw api_gateway_stage) && \
+	for name in request-handler approval-handler document-creator expiration-cleanup admin-handler admin-slack-handler; do \
+		fn="$$env-ssm-$$name"; \
+		echo "Updating $$fn..."; \
+		aws lambda update-function-code --function-name "$$fn" --zip-file "fileb://bin/$$name.zip" --region "$$region" >/dev/null; \
+	done && \
+	echo "Creating API Gateway deployment ($$api_id, stage $$stage)..." && \
+	aws apigateway create-deployment --rest-api-id "$$api_id" --stage-name "$$stage" --region "$$region" >/dev/null && \
+	echo "Lambda deployment complete!"
 
 # Initialize Terraform
 terraform-init:
-	cd infrastructure/terraform && terraform init
+	cd $(TF_DIR) && terraform init
 
 # Format code
 fmt:
-	go fmt ./...
+	gofmt -s -w .
 
 # Tidy dependencies
 tidy:

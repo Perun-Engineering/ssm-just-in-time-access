@@ -39,11 +39,31 @@ output "dynamodb_tables" {
 output "lambda_functions" {
   description = "Lambda function names"
   value = {
-    request_handler      = aws_lambda_function.request_handler.function_name
-    approval_handler     = aws_lambda_function.approval_handler.function_name
-    document_creator     = aws_lambda_function.document_creator.function_name
-    expiration_cleanup   = aws_lambda_function.expiration_cleanup.function_name
-    admin_handler        = aws_lambda_function.admin_handler.function_name
-    admin_slack_handler  = aws_lambda_function.admin_slack_handler.function_name
+    request_handler     = aws_lambda_function.request_handler.function_name
+    approval_handler    = aws_lambda_function.approval_handler.function_name
+    document_creator    = aws_lambda_function.document_creator.function_name
+    expiration_cleanup  = aws_lambda_function.expiration_cleanup.function_name
+    admin_handler       = aws_lambda_function.admin_handler.function_name
+    admin_slack_handler = aws_lambda_function.admin_slack_handler.function_name
   }
+}
+
+output "rest_api_id" {
+  description = "API Gateway REST API ID"
+  value       = aws_api_gateway_rest_api.ssm_access_manager.id
+}
+
+output "api_gateway_stage" {
+  description = "API Gateway stage name"
+  value       = aws_api_gateway_stage.ssm_access_manager.stage_name
+}
+
+output "aws_region" {
+  description = "AWS region of the deployment"
+  value       = var.aws_region
+}
+
+output "environment" {
+  description = "Deployment environment name"
+  value       = var.environment
 }
