@@ -11,7 +11,7 @@ func TestNewDocumentNameGenerator(t *testing.T) {
 	t.Run("creates generator with default prefix", func(t *testing.T) {
 		gen := validation.NewDocumentNameGenerator()
 		assert.NotNil(t, gen)
-		
+
 		// Test that it uses default prefix "PF"
 		name := gen.GenerateName("testuser", "example.com", 22)
 		assert.Contains(t, name, "PF-")
@@ -45,7 +45,7 @@ func TestNewDocumentNameGeneratorWithPrefix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gen := validation.NewDocumentNameGeneratorWithPrefix(tt.prefix)
 			assert.NotNil(t, gen)
-			
+
 			name := gen.GenerateName("user", "host", 22)
 			assert.Contains(t, name, tt.expectedPrefix)
 		})
@@ -123,16 +123,16 @@ func TestGenerateName(t *testing.T) {
 func TestGenerateName_Truncation(t *testing.T) {
 	t.Run("truncates long names to fit 128 character limit", func(t *testing.T) {
 		gen := validation.NewDocumentNameGenerator()
-		
+
 		// Create very long username and host
 		longUsername := "verylongusernamethatexceedsthemaximumlengthallowed"
 		longHost := "verylonghostnamethatexceedsthemaximumlengthallowedforssmdocuments.example.com"
-		
+
 		name := gen.GenerateName(longUsername, longHost, 5432)
-		
+
 		// Should be truncated to 128 characters or less
 		assert.LessOrEqual(t, len(name), 128)
-		
+
 		// Should still contain the prefix and port
 		assert.Contains(t, name, "PF-")
 		assert.Contains(t, name, "-5432")
@@ -140,9 +140,9 @@ func TestGenerateName_Truncation(t *testing.T) {
 
 	t.Run("does not truncate normal length names", func(t *testing.T) {
 		gen := validation.NewDocumentNameGenerator()
-		
+
 		name := gen.GenerateName("user", "host", 22)
-		
+
 		// Should be much shorter than 128
 		assert.Less(t, len(name), 128)
 		assert.Equal(t, "PF-user-host-22", name)
@@ -151,9 +151,9 @@ func TestGenerateName_Truncation(t *testing.T) {
 
 func TestSanitizeComponent(t *testing.T) {
 	tests := []struct {
-		name      string
-		input     string
-		expected  string
+		name     string
+		input    string
+		expected string
 	}{
 		{
 			name:     "removes dots",
@@ -275,7 +275,7 @@ func TestValidateDocumentName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gen := validation.NewDocumentNameGenerator()
 			err := gen.ValidateDocumentName(tt.docName)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -358,7 +358,7 @@ func TestParseDocumentName(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			gen := validation.NewDocumentNameGeneratorWithPrefix(tt.prefix)
 			username, host, port, err := gen.ParseDocumentName(tt.docName)
-			
+
 			if tt.expectError {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
@@ -399,18 +399,18 @@ func TestGenerateAndParse_RoundTrip(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			gen := validation.NewDocumentNameGeneratorWithPrefix(tt.prefix)
-			
+
 			// Generate a name
 			docName := gen.GenerateName(tt.username, tt.host, tt.port)
-			
+
 			// Validate it
 			err := gen.ValidateDocumentName(docName)
 			assert.NoError(t, err)
-			
+
 			// Parse it back
 			username, host, port, err := gen.ParseDocumentName(docName)
 			assert.NoError(t, err)
-			
+
 			// Note: username and host will be sanitized, so we can't compare directly
 			// But port should match exactly
 			assert.Equal(t, tt.port, port)

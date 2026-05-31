@@ -9,7 +9,7 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	
+
 	"github.com/ssm-access-manager/internal/logging"
 	"github.com/ssm-access-manager/internal/repository"
 	"github.com/ssm-access-manager/internal/service"
@@ -35,7 +35,7 @@ type DocumentCreationEvent struct {
 
 func init() {
 	var err error
-	
+
 	// Initialize logger
 	logger, err = logging.NewProductionLogger()
 	if err != nil {
@@ -61,7 +61,7 @@ func init() {
 	requestsTable := os.Getenv("REQUESTS_TABLE")
 	documentsTable := os.Getenv("DOCUMENTS_TABLE")
 	accountsTable := os.Getenv("ACCOUNTS_TABLE")
-	
+
 	requestRepo = repository.NewRequestRepository(dynamoClient, requestsTable)
 	documentRepo = repository.NewDocumentRepository(dynamoClient, documentsTable)
 	accountRepo = repository.NewAccountRepository(dynamoClient, accountsTable)
@@ -113,30 +113,30 @@ func handler(ctx context.Context, event events.CloudWatchEvent) error {
 		logger.LogError(ctx, "get_account", err, map[string]interface{}{
 			"account_id": request.AccountID,
 		})
-		
+
 		errMsg := fmt.Sprintf("Failed to get account configuration: %s", err.Error())
 		_ = slackNotifier.SendDocumentCreationFailure(ctx, request.UserID, request, errMsg)
-		
+
 		return fmt.Errorf("failed to get account: %w", err)
 	}
 
 	// Check if account exists
 	if account == nil {
 		logger.Warn(fmt.Sprintf("account %s not found", request.AccountID))
-		
+
 		errMsg := fmt.Sprintf("Account %s is not configured. Please contact an administrator to add this account.", request.AccountID)
 		_ = slackNotifier.SendDocumentCreationFailure(ctx, request.UserID, request, errMsg)
-		
+
 		return fmt.Errorf("account %s not found", request.AccountID)
 	}
 
 	// Verify account is active
 	if !account.IsActive() {
 		logger.Warn("account is not active")
-		
+
 		errMsg := fmt.Sprintf("Account %s is not active", request.AccountID)
 		_ = slackNotifier.SendDocumentCreationFailure(ctx, request.UserID, request, errMsg)
-		
+
 		return fmt.Errorf("account %s is not active", request.AccountID)
 	}
 
@@ -157,10 +157,10 @@ func handler(ctx context.Context, event events.CloudWatchEvent) error {
 			"host":       request.Host,
 			"port":       request.Port,
 		})
-		
+
 		errMsg := fmt.Sprintf("Failed to create SSM document: %s", err.Error())
 		_ = slackNotifier.SendDocumentCreationFailure(ctx, request.UserID, request, errMsg)
-		
+
 		return fmt.Errorf("failed to create document: %w", err)
 	}
 

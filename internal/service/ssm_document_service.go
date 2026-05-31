@@ -11,7 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssm/types"
 	"github.com/google/uuid"
 	awshelper "github.com/ssm-access-manager/pkg/aws"
-	
+
 	"github.com/ssm-access-manager/internal/models"
 	"github.com/ssm-access-manager/internal/repository"
 	"github.com/ssm-access-manager/internal/validation"
@@ -178,7 +178,7 @@ func (s *SSMDocumentService) CheckExistingDocument(
 	accountID string,
 ) (*models.SSMDocument, error) {
 	documentName := s.nameGenerator.GenerateName(username, host, port)
-	
+
 	document, err := s.documentRepo.GetDocumentByName(ctx, documentName, accountID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get document by name: %w", err)

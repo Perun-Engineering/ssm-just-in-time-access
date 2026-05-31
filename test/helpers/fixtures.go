@@ -126,7 +126,6 @@ func CreateTestAccount() *models.Account {
 	}
 }
 
-
 // CreateSecurityGroup creates a test security approval group
 func CreateSecurityGroup() *models.ApprovalGroup {
 	now := time.Now()
@@ -156,7 +155,6 @@ func CreateManagerGroup(groupID, groupName string) *models.ApprovalGroup {
 		UpdatedAt:   now,
 	}
 }
-
 
 // CreateAccessRequest creates a simple test access request
 func CreateAccessRequest(username, accountID, managerGroupID string) *models.AccessRequest {

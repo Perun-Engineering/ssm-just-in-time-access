@@ -29,7 +29,6 @@ func NewAuthorizationService(
 	}
 }
 
-
 // IsGroupMember checks if a user is a member of a Slack user group
 func (s *AuthorizationService) IsGroupMember(ctx context.Context, groupID, userID string) (bool, error) {
 	if s.groupCache == nil {
@@ -57,8 +56,6 @@ func (s *AuthorizationService) IsAdministrator(ctx context.Context, userID strin
 
 	return user.IsAdministrator(), nil
 }
-
-
 
 // AddAdministrator adds a user as an administrator
 func (s *AuthorizationService) AddAdministrator(ctx context.Context, userID, username, email, addedBy string) error {
@@ -141,7 +138,6 @@ func (s *AuthorizationService) RemoveAdministrator(ctx context.Context, userID, 
 	return nil
 }
 
-
 // GetAllAdministrators retrieves all users with administrator role
 func (s *AuthorizationService) GetAllAdministrators(ctx context.Context) ([]*models.User, error) {
 	admins, err := s.userRepo.ListUsersByRole(ctx, models.UserRoleAdministrator)
@@ -150,7 +146,6 @@ func (s *AuthorizationService) GetAllAdministrators(ctx context.Context) ([]*mod
 	}
 	return admins, nil
 }
-
 
 // VerifyAdministratorAuthorization verifies that a user is authorized to perform admin actions
 func (s *AuthorizationService) VerifyAdministratorAuthorization(ctx context.Context, userID string) error {

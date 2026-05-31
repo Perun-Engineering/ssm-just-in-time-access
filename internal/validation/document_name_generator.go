@@ -33,26 +33,26 @@ func (g *DocumentNameGenerator) GenerateName(username, host string, port int) st
 	// Sanitize each component
 	sanitizedUsername := g.SanitizeComponent(username)
 	sanitizedHost := g.SanitizeComponent(host)
-	
+
 	// Build the document name
 	documentName := fmt.Sprintf("%s-%s-%s-%d", g.prefix, sanitizedUsername, sanitizedHost, port)
-	
+
 	// Ensure the final name is valid (max 128 characters for SSM documents)
 	if len(documentName) > 128 {
 		// Truncate if necessary, keeping the format recognizable
 		maxUsernameLen := 30
 		maxHostLen := 60
-		
+
 		if len(sanitizedUsername) > maxUsernameLen {
 			sanitizedUsername = sanitizedUsername[:maxUsernameLen]
 		}
 		if len(sanitizedHost) > maxHostLen {
 			sanitizedHost = sanitizedHost[:maxHostLen]
 		}
-		
+
 		documentName = fmt.Sprintf("%s-%s-%s-%d", g.prefix, sanitizedUsername, sanitizedHost, port)
 	}
-	
+
 	return documentName
 }
 
@@ -66,24 +66,24 @@ func (g *DocumentNameGenerator) ValidateDocumentName(name string) error {
 	if name == "" {
 		return fmt.Errorf("document name cannot be empty")
 	}
-	
+
 	// Check length (AWS SSM document names can be up to 128 characters)
 	if len(name) > 128 {
 		return fmt.Errorf("document name too long: maximum 128 characters, got %d", len(name))
 	}
-	
+
 	// Check that it only contains valid characters (alphanumeric, hyphens, underscores)
 	for _, char := range name {
 		if !isValidDocumentNameChar(char) {
 			return fmt.Errorf("document name contains invalid character: %c (only alphanumeric, hyphens, and underscores allowed)", char)
 		}
 	}
-	
+
 	// Must start with an alphanumeric character
 	if len(name) > 0 && !isAlphanumeric(rune(name[0])) {
 		return fmt.Errorf("document name must start with an alphanumeric character")
 	}
-	
+
 	return nil
 }
 
@@ -105,33 +105,33 @@ func (g *DocumentNameGenerator) ParseDocumentName(name string) (username, host s
 	if !strings.HasPrefix(name, expectedPrefix) {
 		return "", "", 0, fmt.Errorf("document name must start with '%s'", expectedPrefix)
 	}
-	
+
 	// Remove the prefix
 	remainder := strings.TrimPrefix(name, expectedPrefix)
-	
+
 	// Split by the last hyphen to get the port
 	lastHyphenIdx := strings.LastIndex(remainder, "-")
 	if lastHyphenIdx == -1 {
 		return "", "", 0, fmt.Errorf("invalid document name format: missing port")
 	}
-	
+
 	portStr := remainder[lastHyphenIdx+1:]
 	_, err = fmt.Sscanf(portStr, "%d", &port)
 	if err != nil {
 		return "", "", 0, fmt.Errorf("invalid port in document name: %w", err)
 	}
-	
+
 	// The remainder before the port contains username and host
 	usernameAndHost := remainder[:lastHyphenIdx]
-	
+
 	// Find the second hyphen to separate username from host
 	secondHyphenIdx := strings.Index(usernameAndHost, "-")
 	if secondHyphenIdx == -1 {
 		return "", "", 0, fmt.Errorf("invalid document name format: missing host")
 	}
-	
+
 	username = usernameAndHost[:secondHyphenIdx]
 	host = usernameAndHost[secondHyphenIdx+1:]
-	
+
 	return username, host, port, nil
 }

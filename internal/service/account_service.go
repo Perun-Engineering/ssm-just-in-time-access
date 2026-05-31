@@ -6,7 +6,7 @@ import (
 	"time"
 
 	awshelper "github.com/ssm-access-manager/pkg/aws"
-	
+
 	"github.com/ssm-access-manager/internal/models"
 	"github.com/ssm-access-manager/internal/repository"
 	"github.com/ssm-access-manager/internal/validation"
@@ -14,10 +14,10 @@ import (
 
 // AccountService handles AWS account management
 type AccountService struct {
-	accountRepo   *repository.AccountRepository
-	validator     *validation.RequestValidator
-	roleAssumer   *awshelper.RoleAssumer
-	authService   *AuthorizationService
+	accountRepo *repository.AccountRepository
+	validator   *validation.RequestValidator
+	roleAssumer *awshelper.RoleAssumer
+	authService *AuthorizationService
 }
 
 // NewAccountService creates a new account service

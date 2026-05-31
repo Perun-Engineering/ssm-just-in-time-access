@@ -8,47 +8,47 @@ import (
 
 // AccessRequest represents a user's request for SSM access
 type AccessRequest struct {
-	RequestID         string        `dynamodbav:"request_id" json:"request_id"`
-	Username          string        `dynamodbav:"username" json:"username"`
-	UserID            string        `dynamodbav:"user_id" json:"user_id"`
-	Host              string        `dynamodbav:"host" json:"host"`
-	Port              int           `dynamodbav:"port" json:"port"`
-	AccountID         string        `dynamodbav:"account_id" json:"account_id"`
-	ExpirationDate    time.Time     `dynamodbav:"expiration_date" json:"expiration_date"`
-	Status            RequestStatus `dynamodbav:"status" json:"status"`
-	CreatedAt         time.Time     `dynamodbav:"created_at" json:"created_at"`
-	UpdatedAt         time.Time     `dynamodbav:"updated_at" json:"updated_at"`
-	
+	RequestID      string        `dynamodbav:"request_id" json:"request_id"`
+	Username       string        `dynamodbav:"username" json:"username"`
+	UserID         string        `dynamodbav:"user_id" json:"user_id"`
+	Host           string        `dynamodbav:"host" json:"host"`
+	Port           int           `dynamodbav:"port" json:"port"`
+	AccountID      string        `dynamodbav:"account_id" json:"account_id"`
+	ExpirationDate time.Time     `dynamodbav:"expiration_date" json:"expiration_date"`
+	Status         RequestStatus `dynamodbav:"status" json:"status"`
+	CreatedAt      time.Time     `dynamodbav:"created_at" json:"created_at"`
+	UpdatedAt      time.Time     `dynamodbav:"updated_at" json:"updated_at"`
+
 	// Manager group selection (NEW)
 	ManagerGroupID   string `dynamodbav:"manager_group_id,omitempty" json:"manager_group_id,omitempty"`
 	ManagerGroupName string `dynamodbav:"manager_group_name,omitempty" json:"manager_group_name,omitempty"`
-	
+
 	// Reason for access request
 	Reason string `dynamodbav:"reason" json:"reason"`
-	
+
 	// Security approval tracking (NEW)
 	SecurityApproverID        *string    `dynamodbav:"security_approver_id,omitempty" json:"security_approver_id,omitempty"`
 	SecurityApproverName      *string    `dynamodbav:"security_approver_name,omitempty" json:"security_approver_name,omitempty"`
 	SecurityApprovalTimestamp *time.Time `dynamodbav:"security_approval_timestamp,omitempty" json:"security_approval_timestamp,omitempty"`
-	
+
 	// Manager approval tracking (NEW)
 	ManagerApproverID        *string    `dynamodbav:"manager_approver_id,omitempty" json:"manager_approver_id,omitempty"`
 	ManagerApproverName      *string    `dynamodbav:"manager_approver_name,omitempty" json:"manager_approver_name,omitempty"`
 	ManagerApprovalTimestamp *time.Time `dynamodbav:"manager_approval_timestamp,omitempty" json:"manager_approval_timestamp,omitempty"`
-	
+
 	// Legacy fields - kept for backward compatibility with existing DynamoDB records
 	// These fields are no longer used in new requests but must remain for data migration
 	Approver          *string    `dynamodbav:"approver,omitempty" json:"approver,omitempty"`
 	ApproverID        *string    `dynamodbav:"approver_id,omitempty" json:"approver_id,omitempty"`
 	ApprovalTimestamp *time.Time `dynamodbav:"approval_timestamp,omitempty" json:"approval_timestamp,omitempty"`
-	
+
 	// Denial and revocation fields
 	DenialReason     *string    `dynamodbav:"denial_reason,omitempty" json:"denial_reason,omitempty"`
 	RevokedBy        *string    `dynamodbav:"revoked_by,omitempty" json:"revoked_by,omitempty"`
 	RevokedByID      *string    `dynamodbav:"revoked_by_id,omitempty" json:"revoked_by_id,omitempty"`
 	RevokedAt        *time.Time `dynamodbav:"revoked_at,omitempty" json:"revoked_at,omitempty"`
 	RevocationReason *string    `dynamodbav:"revocation_reason,omitempty" json:"revocation_reason,omitempty"`
-	
+
 	// Message metadata for updating approval messages
 	// Map of userID -> Slack message timestamp
 	ApprovalMessageTimestamps map[string]string `dynamodbav:"approval_message_timestamps,omitempty" json:"approval_message_timestamps,omitempty"`
@@ -112,7 +112,6 @@ func (r *AccessRequest) IsDenied() bool {
 func (r *AccessRequest) IsRevoked() bool {
 	return r.Status == RequestStatusRevoked
 }
-
 
 // IsPartiallyApproved returns true if the request is partially approved
 func (r *AccessRequest) IsPartiallyApproved() bool {

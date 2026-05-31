@@ -37,7 +37,6 @@ type RequestValidatorInterface interface {
 	ValidateAccountID(accountID string) *models.ValidationResult
 }
 
-
 // GroupMembershipCacheInterface defines the interface for group membership caching
 type GroupMembershipCacheInterface interface {
 	IsMember(ctx context.Context, groupID, userID string) (bool, error)

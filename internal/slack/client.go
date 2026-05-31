@@ -46,7 +46,7 @@ func (c *Client) GetUsername(ctx context.Context, userID string) (string, error)
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Prefer real name, fall back to display name, then username
 	if user.RealName != "" {
 		return user.RealName, nil

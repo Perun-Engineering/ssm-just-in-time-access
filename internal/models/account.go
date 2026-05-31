@@ -45,7 +45,7 @@ func (a *Account) Validate() error {
 	if a.UpdatedAt.IsZero() {
 		return fmt.Errorf("updated_at is required")
 	}
-	
+
 	// Validate bastion host ID format if provided
 	if a.BastionHostID != "" {
 		bastionHostIDPattern := regexp.MustCompile(`^i-[0-9a-f]{8,17}$`)
@@ -53,7 +53,7 @@ func (a *Account) Validate() error {
 			return fmt.Errorf("invalid bastion_host_id format: must match pattern i-[0-9a-f]{8,17}")
 		}
 	}
-	
+
 	return nil
 }
 

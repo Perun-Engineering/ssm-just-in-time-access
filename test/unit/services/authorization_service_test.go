@@ -242,11 +242,11 @@ func TestAuthorizationService_IsGroupMember_NilCache(t *testing.T) {
 // **Validates: Requirements 2.6, 6.7**
 func TestProperty_AdminOperationsFunctionCorrectly(t *testing.T) {
 	ctx := context.Background()
-	
-	// Property: For any valid admin operation (add administrator, remove administrator, 
-	// get administrators, verify administrator authorization), the operation should 
+
+	// Property: For any valid admin operation (add administrator, remove administrator,
+	// get administrators, verify administrator authorization), the operation should
 	// complete successfully and maintain correct admin user state in the repository.
-	
+
 	testCases := []struct {
 		name      string
 		operation string
@@ -265,7 +265,7 @@ func TestProperty_AdminOperationsFunctionCorrectly(t *testing.T) {
 				mockRepo.On("GetUser", ctx, "U999999").Return(nil, nil)
 				// Save new user
 				mockRepo.On("SaveUser", ctx, mock.MatchedBy(func(u *models.User) bool {
-					return u.UserID == "U999999" && 
+					return u.UserID == "U999999" &&
 						u.Role == models.UserRoleAdministrator &&
 						u.Username == "new.admin" &&
 						u.Email == "new.admin@example.com"
@@ -429,7 +429,7 @@ func TestProperty_AdminOperationsFunctionCorrectly(t *testing.T) {
 				mockRepo.On("ListUsersByRole", ctx, models.UserRoleAdministrator).Return([]*models.User{}, nil)
 				// Save new administrator
 				mockRepo.On("SaveUser", ctx, mock.MatchedBy(func(u *models.User) bool {
-					return u.UserID == "U111111" && 
+					return u.UserID == "U111111" &&
 						u.Role == models.UserRoleAdministrator &&
 						u.Username == "initial.admin" &&
 						u.AddedBy == "system"
@@ -459,25 +459,25 @@ func TestProperty_AdminOperationsFunctionCorrectly(t *testing.T) {
 			},
 		},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			mockRepo := new(helpers.MockUserRepository)
 			mockCache := new(helpers.MockGroupMembershipCache)
 			mockAudit := new(helpers.MockAuditService)
-			
+
 			// Setup mocks
 			tc.setup(mockRepo, mockCache, mockAudit)
-			
+
 			// Create service
 			svc := service.NewAuthorizationService(mockRepo, mockCache, mockAudit)
-			
+
 			// Execute operation
 			err := tc.execute(svc)
-			
+
 			// Verify result
 			tc.verify(t, err)
-			
+
 			// Verify all expectations were met
 			mockRepo.AssertExpectations(t)
 		})

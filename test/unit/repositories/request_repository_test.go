@@ -304,7 +304,7 @@ func TestRequestRepository_ListPendingRequests(t *testing.T) {
 				req2.Status = models.RequestStatusPartiallyApproved
 				item1, _ := attributevalue.MarshalMap(req1)
 				item2, _ := attributevalue.MarshalMap(req2)
-				
+
 				// First query for pending requests
 				m.On("Query", mock.Anything, mock.MatchedBy(func(input *dynamodb.QueryInput) bool {
 					if input.ExpressionAttributeValues == nil {
@@ -322,7 +322,7 @@ func TestRequestRepository_ListPendingRequests(t *testing.T) {
 				}), mock.Anything).Return(&dynamodb.QueryOutput{
 					Items: []map[string]types.AttributeValue{item1},
 				}, nil).Once()
-				
+
 				// Second query for partially approved requests
 				m.On("Query", mock.Anything, mock.MatchedBy(func(input *dynamodb.QueryInput) bool {
 					if input.ExpressionAttributeValues == nil {

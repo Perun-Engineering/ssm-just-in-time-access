@@ -71,7 +71,6 @@ func (s *ApprovalGroupService) AddGroup(ctx context.Context, group *models.Appro
 	return nil
 }
 
-
 // UpdateGroup updates an existing approval group
 func (s *ApprovalGroupService) UpdateGroup(ctx context.Context, groupID string, updates map[string]interface{}, adminID, adminName string) error {
 	// Verify administrator authorization

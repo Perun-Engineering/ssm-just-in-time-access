@@ -493,19 +493,19 @@ func TestAccessRequestService_AuditLogging(t *testing.T) {
 // **Validates: Requirements 1.4**
 func TestProperty_RequestValidationRequiresManagerGroup(t *testing.T) {
 	ctx := context.Background()
-	
-	// Property: For any access request creation attempt, if the ManagerGroupID or 
-	// ManagerGroupName is empty, then the validation should fail and the request 
+
+	// Property: For any access request creation attempt, if the ManagerGroupID or
+	// ManagerGroupName is empty, then the validation should fail and the request
 	// should not be created.
-	
+
 	property := func(managerGroupID, managerGroupName string) bool {
 		mockRepo := new(helpers.MockRequestRepository)
 		mockValidator := new(helpers.MockRequestValidator)
 		mockAuth := new(helpers.MockAuthorizationService)
 		mockAudit := new(helpers.MockAuditService)
-		
+
 		svc := service.NewAccessRequestService(mockRepo, mockValidator, mockAuth, mockAudit)
-		
+
 		// Setup valid test data for other fields
 		username := "test.user"
 		userID := "U123456"
@@ -513,20 +513,20 @@ func TestProperty_RequestValidationRequiresManagerGroup(t *testing.T) {
 		port := 5432
 		accountID := "123456789012"
 		expirationDate := time.Now().Add(24 * time.Hour)
-		
+
 		// Mock all validations to pass (we're only testing manager group validation)
 		mockValidator.On("ValidateHost", host).Return(&models.ValidationResult{IsValid: true})
 		mockValidator.On("ValidatePort", port).Return(&models.ValidationResult{IsValid: true})
 		mockValidator.On("ValidateExpirationDate", mock.Anything).Return(&models.ValidationResult{IsValid: true})
 		mockValidator.On("ValidateUsername", username).Return(&models.ValidationResult{IsValid: true})
 		mockValidator.On("ValidateAccountID", accountID).Return(&models.ValidationResult{IsValid: true})
-		
+
 		// Only mock SaveRequest if both manager group fields are non-empty
 		if managerGroupID != "" && managerGroupName != "" {
 			mockRepo.On("SaveRequest", ctx, mock.Anything).Return(nil)
 			mockAudit.On("LogRequestCreated", ctx, mock.Anything).Return()
 		}
-		
+
 		// Attempt to create request
 		request, err := svc.CreateRequest(
 			ctx,
@@ -540,18 +540,18 @@ func TestProperty_RequestValidationRequiresManagerGroup(t *testing.T) {
 			managerGroupName,
 			"Test reason",
 		)
-		
+
 		// Property check: If either field is empty, creation should fail
 		if managerGroupID == "" || managerGroupName == "" {
 			return err != nil && request == nil
 		}
-		
+
 		// If both fields are non-empty, creation should succeed
-		return err == nil && request != nil && 
-			request.ManagerGroupID == managerGroupID && 
+		return err == nil && request != nil &&
+			request.ManagerGroupID == managerGroupID &&
 			request.ManagerGroupName == managerGroupName
 	}
-	
+
 	// Test with specific edge cases
 	testCases := []struct {
 		name             string
@@ -565,12 +565,12 @@ func TestProperty_RequestValidationRequiresManagerGroup(t *testing.T) {
 		{"Both provided", "G123456", "SRE Team", false},
 		{"Both provided with spaces", "G789012", "Cloud Ops Team", false},
 	}
-	
+
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			result := property(tc.managerGroupID, tc.managerGroupName)
 			if !result {
-				t.Errorf("Property violated for case: %s (ID=%q, Name=%q)", 
+				t.Errorf("Property violated for case: %s (ID=%q, Name=%q)",
 					tc.name, tc.managerGroupID, tc.managerGroupName)
 			}
 		})
@@ -586,7 +586,7 @@ func TestAccessRequestService_AllowSelfApproval_WhenEnabled(t *testing.T) {
 	mockAudit := new(helpers.MockAuditService)
 
 	svc := service.NewAccessRequestService(mockRepo, mockValidator, mockAuth, mockAudit)
-	
+
 	// Enable self-approval for testing
 	svc.SetAllowSelfApproval(true)
 
@@ -621,7 +621,7 @@ func TestAccessRequestService_AllowSelfApproval_WhenEnabled(t *testing.T) {
 
 	// Verify self-approval attempt was NOT logged (because it was allowed)
 	mockAudit.AssertNotCalled(t, "LogSelfApprovalAttempt")
-	
+
 	// Verify normal approval was logged
 	mockAudit.AssertCalled(t, "LogSecurityApproval", ctx, requesterID, requesterName, mock.Anything)
 
