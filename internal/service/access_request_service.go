@@ -12,14 +12,14 @@ import (
 
 // AccessRequestService handles access request business logic
 type AccessRequestService struct {
-	requestRepo          repository.RequestRepositoryInterface
-	validator            RequestValidatorInterface
-	authService          AuthorizationServiceInterface
-	auditService         AuditServiceInterface
-	documentRepo         *repository.DocumentRepository
-	documentService      *SSMDocumentService
-	allowSelfApproval    bool // For testing purposes only - defaults to false
-	slackNotifier        interface {
+	requestRepo       repository.RequestRepositoryInterface
+	validator         RequestValidatorInterface
+	authService       AuthorizationServiceInterface
+	auditService      AuditServiceInterface
+	documentRepo      *repository.DocumentRepository
+	documentService   *SSMDocumentService
+	allowSelfApproval bool // For testing purposes only - defaults to false
+	slackNotifier     interface {
 		SendRevocationNotification(ctx context.Context, userID string, request *models.AccessRequest, revokedBy, reason string) error
 	}
 }
@@ -36,9 +36,9 @@ func NewAccessRequestService(
 		validator:         validator,
 		authService:       authService,
 		auditService:      auditService,
-		documentRepo:      nil, // Set via SetDocumentRepository if needed
-		documentService:   nil, // Set via SetDocumentService if needed
-		slackNotifier:     nil, // Set via SetSlackNotifier if needed
+		documentRepo:      nil,   // Set via SetDocumentRepository if needed
+		documentService:   nil,   // Set via SetDocumentService if needed
+		slackNotifier:     nil,   // Set via SetSlackNotifier if needed
 		allowSelfApproval: false, // Default to false for security
 	}
 }
@@ -489,6 +489,3 @@ func (s *AccessRequestService) ApproveRequestManager(
 
 	return request, nil
 }
-
-
-

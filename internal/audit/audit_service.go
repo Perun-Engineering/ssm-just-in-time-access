@@ -51,15 +51,15 @@ type AuditMetadata struct {
 
 // Event type constants
 const (
-	EventRequestCreated              = "request_created"
-	EventRequestApprovedSecurity     = "request_approved_security"
-	EventRequestApprovedManager      = "request_approved_manager"
-	EventRequestFullyApproved        = "request_fully_approved"
-	EventRequestDenied               = "request_denied"
-	EventRequestRevoked              = "request_revoked"
-	EventSelfApprovalAttempt         = "self_approval_attempt"
-	EventDocumentCreated             = "document_created"
-	EventDocumentDeleted             = "document_deleted"
+	EventRequestCreated          = "request_created"
+	EventRequestApprovedSecurity = "request_approved_security"
+	EventRequestApprovedManager  = "request_approved_manager"
+	EventRequestFullyApproved    = "request_fully_approved"
+	EventRequestDenied           = "request_denied"
+	EventRequestRevoked          = "request_revoked"
+	EventSelfApprovalAttempt     = "self_approval_attempt"
+	EventDocumentCreated         = "document_created"
+	EventDocumentDeleted         = "document_deleted"
 
 	EventApprovalGroupAdded          = "approval_group_added"
 	EventApprovalGroupUpdated        = "approval_group_updated"
@@ -128,7 +128,6 @@ func getUserAgent(ctx context.Context) string {
 	}
 	return ""
 }
-
 
 // LogRequestCreated logs when a new access request is created
 func (s *AuditLogService) LogRequestCreated(ctx context.Context, request *models.AccessRequest) {
@@ -203,11 +202,11 @@ func (s *AuditLogService) LogManagerApproval(ctx context.Context, approverID, ap
 			ResourceType: "access_request",
 		},
 		Details: map[string]interface{}{
-			"host":              request.Host,
-			"port":              request.Port,
-			"account_id":        request.AccountID,
-			"requester":         request.Username,
-			"manager_group_id":  request.ManagerGroupID,
+			"host":               request.Host,
+			"port":               request.Port,
+			"account_id":         request.AccountID,
+			"requester":          request.Username,
+			"manager_group_id":   request.ManagerGroupID,
 			"manager_group_name": request.ManagerGroupName,
 		},
 		Metadata: s.getMetadata(ctx),

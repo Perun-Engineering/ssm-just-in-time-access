@@ -20,17 +20,17 @@ func NewInteractionHandler(client *Client) *InteractionHandler {
 
 // InteractionCallback represents a Slack interaction callback
 type InteractionCallback struct {
-	Type        string                       `json:"type"`
-	User        slack.User                   `json:"user"`
-	ResponseURL string                       `json:"response_url"`
-	TriggerID   string                       `json:"trigger_id"`
-	Actions     []slack.BlockAction          `json:"actions"`
-	Container   slack.Container              `json:"container"`
-	Channel     slack.Channel                `json:"channel"`
-	Message     slack.Message                `json:"message"`
-	View        slack.View                   `json:"view"`
-	Team        slack.Team                   `json:"team"`
-	Token       string                       `json:"token"`
+	Type        string              `json:"type"`
+	User        slack.User          `json:"user"`
+	ResponseURL string              `json:"response_url"`
+	TriggerID   string              `json:"trigger_id"`
+	Actions     []slack.BlockAction `json:"actions"`
+	Container   slack.Container     `json:"container"`
+	Channel     slack.Channel       `json:"channel"`
+	Message     slack.Message       `json:"message"`
+	View        slack.View          `json:"view"`
+	Team        slack.Team          `json:"team"`
+	Token       string              `json:"token"`
 }
 
 // ParseInteractionCallback parses a Slack interaction callback from JSON

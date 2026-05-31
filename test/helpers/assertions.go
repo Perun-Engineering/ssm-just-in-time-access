@@ -3,8 +3,8 @@ package helpers
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/ssm-access-manager/internal/models"
+	"github.com/stretchr/testify/assert"
 )
 
 // AssertRequestStatus asserts that a request has the expected status

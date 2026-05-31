@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/stretchr/testify/mock"
 	"github.com/ssm-access-manager/internal/models"
+	"github.com/stretchr/testify/mock"
 )
 
 // MockApprovalGroupRepository is a mock implementation of ApprovalGroupRepository
@@ -297,7 +297,6 @@ func (m *MockUserRepository) DeleteUser(ctx context.Context, userID string) erro
 	args := m.Called(ctx, userID)
 	return args.Error(0)
 }
-
 
 // MockDynamoDBClient is a mock implementation of DynamoDB client for testing
 type MockDynamoDBClient struct {

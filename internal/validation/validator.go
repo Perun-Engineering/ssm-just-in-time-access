@@ -34,10 +34,10 @@ func (v *RequestValidator) ValidateHost(host string) *models.ValidationResult {
 
 	// Store original for debugging
 	originalHost := host
-	
+
 	// Trim whitespace
 	host = strings.TrimSpace(host)
-	
+
 	// Debug: log if trimming changed anything
 	if originalHost != host {
 		// Host had whitespace - this could indicate parsing issues
@@ -58,7 +58,7 @@ func (v *RequestValidator) ValidateHost(host string) *models.ValidationResult {
 	// - Can contain hyphens in the middle
 	// Pattern: label is either single char OR starts with alphanumeric, has 0+ middle chars, ends with alphanumeric
 	hostnameRegex := regexp.MustCompile(`^[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*$`)
-	
+
 	if !hostnameRegex.MatchString(host) {
 		result := models.Invalid("invalid host format: must be a valid hostname or IP address")
 		return &result
@@ -221,15 +221,15 @@ func (v *RequestValidator) ValidateRoleName(roleName string) *models.ValidationR
 func (v *RequestValidator) SanitizeForDocumentName(value string) string {
 	// Replace any character that's not alphanumeric, hyphen, or underscore with hyphen
 	sanitized := regexp.MustCompile(`[^a-zA-Z0-9\-_]`).ReplaceAllString(value, "-")
-	
+
 	// Replace multiple consecutive hyphens with a single hyphen
 	sanitized = regexp.MustCompile(`-+`).ReplaceAllString(sanitized, "-")
-	
+
 	// Trim leading and trailing hyphens
 	sanitized = strings.Trim(sanitized, "-")
-	
+
 	// Convert to lowercase for consistency
 	sanitized = strings.ToLower(sanitized)
-	
+
 	return sanitized
 }

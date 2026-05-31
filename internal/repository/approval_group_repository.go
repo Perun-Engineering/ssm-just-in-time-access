@@ -107,7 +107,6 @@ func (r *ApprovalGroupRepository) ListAllGroups(ctx context.Context) ([]*models.
 	return groups, nil
 }
 
-
 // ListGroupsByType retrieves all approval groups of a specific type
 func (r *ApprovalGroupRepository) ListGroupsByType(ctx context.Context, groupType models.ApprovalGroupType) ([]*models.ApprovalGroup, error) {
 	result, err := r.client.Query(ctx, &dynamodb.QueryInput{

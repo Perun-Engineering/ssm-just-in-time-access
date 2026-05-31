@@ -81,7 +81,7 @@ func TestUser_Validate_MissingUsername(t *testing.T) {
 // TestUser_Validate_InvalidRole tests validation fails with invalid role
 func TestUser_Validate_InvalidRole(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name string
 		role models.UserRole

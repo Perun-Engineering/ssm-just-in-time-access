@@ -27,17 +27,17 @@ func TestApprovalGroupService_AddGroup_WithAdminAuthorization(t *testing.T) {
 
 	// Mock admin authorization
 	mockAuth.On("VerifyAdministratorAuthorization", ctx, adminID).Return(nil)
-	
+
 	// Mock save operation
 	mockRepo.On("SaveGroup", ctx, mock.MatchedBy(func(g *models.ApprovalGroup) bool {
 		return g.GroupID == group.GroupID && !g.AddedAt.IsZero() && !g.UpdatedAt.IsZero()
 	})).Return(nil)
-	
+
 	// Mock audit logging
 	mockAudit.On("LogApprovalGroupAdded", ctx, adminID, adminName, mock.Anything).Return()
 
 	err := svc.AddGroup(ctx, group, adminID, adminName)
-	
+
 	assert.NoError(t, err)
 	assert.NotZero(t, group.AddedAt)
 	assert.NotZero(t, group.UpdatedAt)
@@ -67,7 +67,7 @@ func TestApprovalGroupService_AddGroup_RejectsNonAdmin(t *testing.T) {
 	})).Return()
 
 	err := svc.AddGroup(ctx, group, userID, userName)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "unauthorized")
 	mockAuth.AssertExpectations(t)
@@ -94,7 +94,7 @@ func TestApprovalGroupService_AddGroup_ValidatesGroupData(t *testing.T) {
 	mockAuth.On("VerifyAdministratorAuthorization", ctx, adminID).Return(nil)
 
 	err := svc.AddGroup(ctx, group, adminID, adminName)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "invalid approval group")
 	mockRepo.AssertNotCalled(t, "SaveGroup")
@@ -116,13 +116,13 @@ func TestApprovalGroupService_AddGroup_EnforcesSingleSecurityGroup(t *testing.T)
 	adminName := "admin"
 
 	mockAuth.On("VerifyAdministratorAuthorization", ctx, adminID).Return(nil)
-	
+
 	// Mock existing security group
 	existingGroup := helpers.CreateTestSecurityGroup()
 	mockRepo.On("GetSecurityGroup", ctx).Return(existingGroup, nil)
 
 	err := svc.AddGroup(ctx, newSecurityGroup, adminID, adminName)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "security group already exists")
 	mockRepo.AssertNotCalled(t, "SaveGroup")
@@ -142,7 +142,7 @@ func TestApprovalGroupService_UpdateGroup_WithValidChanges(t *testing.T) {
 	groupID := existingGroup.GroupID
 	adminID := "U123456"
 	adminName := "admin"
-	
+
 	updates := map[string]interface{}{
 		"name":   "Updated Manager Group",
 		"active": false,
@@ -156,7 +156,7 @@ func TestApprovalGroupService_UpdateGroup_WithValidChanges(t *testing.T) {
 	mockAudit.On("LogApprovalGroupUpdated", ctx, adminID, adminName, mock.Anything).Return()
 
 	err := svc.UpdateGroup(ctx, groupID, updates, adminID, adminName)
-	
+
 	assert.NoError(t, err)
 	mockAuth.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
@@ -183,7 +183,7 @@ func TestApprovalGroupService_RemoveGroup_WithAuthorization(t *testing.T) {
 	mockAudit.On("LogApprovalGroupRemoved", ctx, adminID, adminName, groupID).Return()
 
 	err := svc.RemoveGroup(ctx, groupID, adminID, adminName)
-	
+
 	assert.NoError(t, err)
 	mockAuth.AssertExpectations(t)
 	mockRepo.AssertExpectations(t)
@@ -208,7 +208,7 @@ func TestApprovalGroupService_RemoveGroup_CannotRemoveSecurityGroup(t *testing.T
 	mockRepo.On("GetGroup", ctx, groupID).Return(securityGroup, nil)
 
 	err := svc.RemoveGroup(ctx, groupID, adminID, adminName)
-	
+
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "cannot remove security group")
 	mockRepo.AssertNotCalled(t, "DeleteGroup")
@@ -228,7 +228,7 @@ func TestApprovalGroupService_GetSecurityGroup(t *testing.T) {
 	mockRepo.On("GetSecurityGroup", ctx).Return(expectedGroup, nil)
 
 	group, err := svc.GetSecurityGroup(ctx)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, expectedGroup.GroupID, group.GroupID)
 	assert.True(t, group.IsSecurity())
@@ -250,7 +250,7 @@ func TestApprovalGroupService_ListActiveManagerGroups(t *testing.T) {
 	mockRepo.On("ListActiveManagerGroups", ctx).Return(expectedGroups, nil)
 
 	groups, err := svc.ListActiveManagerGroups(ctx)
-	
+
 	assert.NoError(t, err)
 	assert.Len(t, groups, 1)
 	assert.True(t, groups[0].IsManager())
@@ -261,7 +261,7 @@ func TestApprovalGroupService_ListActiveManagerGroups(t *testing.T) {
 // TestApprovalGroupService_AuditLogging tests all operations are logged
 func TestApprovalGroupService_AuditLogging(t *testing.T) {
 	ctx := context.Background()
-	
+
 	tests := []struct {
 		name      string
 		operation func(*service.ApprovalGroupService, *helpers.MockApprovalGroupRepository, *helpers.MockAuthorizationService, *helpers.MockAuditService) error
@@ -312,7 +312,7 @@ func TestApprovalGroupService_AuditLogging(t *testing.T) {
 			svc := service.NewApprovalGroupService(mockRepo, mockAuth, mockAudit)
 
 			err := tt.operation(svc, mockRepo, mockAuth, mockAudit)
-			
+
 			assert.NoError(t, err)
 			mockAudit.AssertCalled(t, tt.auditCall, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 		})

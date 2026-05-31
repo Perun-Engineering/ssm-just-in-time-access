@@ -16,11 +16,11 @@ import (
 
 // AssumedCredentials holds assumed role credentials with expiration
 type AssumedCredentials struct {
-	Config     aws.Config
-	ExpiresAt  time.Time
-	AccountID  string
-	RoleName   string
-	Region     string
+	Config    aws.Config
+	ExpiresAt time.Time
+	AccountID string
+	RoleName  string
+	Region    string
 }
 
 // IsExpired checks if the credentials are expired or about to expire (within 5 minutes)
@@ -54,7 +54,7 @@ func NewRoleAssumer(ctx context.Context) (*RoleAssumer, error) {
 func (r *RoleAssumer) AssumeRole(ctx context.Context, accountID, roleName, region string) (aws.Config, error) {
 	// Check cache first
 	cacheKey := fmt.Sprintf("%s:%s:%s", accountID, roleName, region)
-	
+
 	r.cacheMu.RLock()
 	cached, exists := r.cache[cacheKey]
 	r.cacheMu.RUnlock()
@@ -65,12 +65,12 @@ func (r *RoleAssumer) AssumeRole(ctx context.Context, accountID, roleName, regio
 
 	// Assume the role
 	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, roleName)
-	
+
 	stsClient := sts.NewFromConfig(r.BaseConfig)
-	
+
 	// Get environment name for external ID
 	externalID := getEnvironmentName()
-	
+
 	// Create credentials provider that assumes the role
 	provider := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
 		o.RoleSessionName = fmt.Sprintf("ssm-access-manager-%d", time.Now().Unix())
@@ -108,12 +108,12 @@ func (r *RoleAssumer) AssumeRole(ctx context.Context, accountID, roleName, regio
 // ValidateRoleAssumption validates that the role can be assumed
 func (r *RoleAssumer) ValidateRoleAssumption(ctx context.Context, accountID, roleName string) error {
 	roleARN := fmt.Sprintf("arn:aws:iam::%s:role/%s", accountID, roleName)
-	
+
 	stsClient := sts.NewFromConfig(r.BaseConfig)
-	
+
 	// Get environment name for external ID
 	externalID := getEnvironmentName()
-	
+
 	// Try to get caller identity with assumed role
 	provider := stscreds.NewAssumeRoleProvider(stsClient, roleARN, func(o *stscreds.AssumeRoleOptions) {
 		o.RoleSessionName = fmt.Sprintf("ssm-access-manager-validation-%d", time.Now().Unix())
@@ -161,7 +161,7 @@ func (r *RoleAssumer) ClearCache() {
 func (r *RoleAssumer) ClearCacheForAccount(accountID string) {
 	r.cacheMu.Lock()
 	defer r.cacheMu.Unlock()
-	
+
 	for key := range r.cache {
 		if r.cache[key].AccountID == accountID {
 			delete(r.cache, key)

@@ -39,7 +39,6 @@ type AuditServiceInterface interface {
 	LogSelfApprovalAttempt(ctx context.Context, userID, username, requestID string)
 }
 
-
 // DynamoDBClientInterface defines the interface for DynamoDB operations
 type DynamoDBClientInterface interface {
 	PutItem(ctx context.Context, params *dynamodb.PutItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.PutItemOutput, error)

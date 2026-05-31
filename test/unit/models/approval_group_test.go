@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/ssm-access-manager/internal/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestApprovalGroup_Validate_ValidSecurityGroup(t *testing.T) {

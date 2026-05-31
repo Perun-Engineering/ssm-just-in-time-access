@@ -8,7 +8,7 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	
+
 	"github.com/ssm-access-manager/internal/logging"
 	"github.com/ssm-access-manager/internal/models"
 	"github.com/ssm-access-manager/internal/repository"
@@ -30,7 +30,7 @@ var (
 
 func init() {
 	var err error
-	
+
 	// Initialize logger
 	logger, err = logging.NewProductionLogger()
 	if err != nil {
@@ -55,7 +55,7 @@ func init() {
 	// Initialize repositories
 	documentsTable := os.Getenv("DOCUMENTS_TABLE")
 	usersTable := os.Getenv("USERS_TABLE")
-	
+
 	documentRepo = repository.NewDocumentRepository(dynamoClient, documentsTable)
 	userRepo = repository.NewUserRepository(dynamoClient, usersTable)
 

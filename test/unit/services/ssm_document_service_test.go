@@ -14,12 +14,12 @@ func TestSSMDocumentService_GenerateDocumentContent(t *testing.T) {
 	// 1. Create interfaces for AWS SDK clients
 	// 2. Mock the SSM client
 	// 3. Test the full CreateDocument flow
-	
+
 	// For now, we test that the service can be instantiated with the correct dependencies
 	nameGenerator := validation.NewDocumentNameGeneratorWithPrefix("PF")
-	
+
 	assert.NotNil(t, nameGenerator)
-	
+
 	// Test document name generation
 	documentName := nameGenerator.GenerateName("testuser", "prod-db-01", 5432)
 	assert.NotEmpty(t, documentName)
@@ -56,7 +56,7 @@ func TestSSMDocumentService_DocumentNameGeneration_CustomPrefix(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			nameGenerator := validation.NewDocumentNameGeneratorWithPrefix(tt.prefix)
 			documentName := nameGenerator.GenerateName(tt.username, tt.host, tt.port)
-			
+
 			assert.NotEmpty(t, documentName)
 			assert.Contains(t, documentName, tt.prefix)
 		})
@@ -66,7 +66,7 @@ func TestSSMDocumentService_DocumentNameGeneration_CustomPrefix(t *testing.T) {
 // TestSSMDocumentService_DocumentNameValidation tests document name validation
 func TestSSMDocumentService_DocumentNameValidation(t *testing.T) {
 	nameGenerator := validation.NewDocumentNameGeneratorWithPrefix("PF")
-	
+
 	tests := []struct {
 		name          string
 		documentName  string
@@ -87,7 +87,7 @@ func TestSSMDocumentService_DocumentNameValidation(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := nameGenerator.ValidateDocumentName(tt.documentName)
-			
+
 			if tt.shouldBeValid {
 				assert.NoError(t, err)
 			} else {
@@ -100,16 +100,16 @@ func TestSSMDocumentService_DocumentNameValidation(t *testing.T) {
 // TestSSMDocumentService_ParseDocumentName tests parsing document names
 func TestSSMDocumentService_ParseDocumentName(t *testing.T) {
 	nameGenerator := validation.NewDocumentNameGeneratorWithPrefix("PF")
-	
+
 	// Generate a document name
 	username := "testuser"
 	host := "prod-db-01"
 	port := 5432
 	documentName := nameGenerator.GenerateName(username, host, port)
-	
+
 	// Parse it back
 	parsedUsername, parsedHost, parsedPort, err := nameGenerator.ParseDocumentName(documentName)
-	
+
 	assert.NoError(t, err)
 	assert.Equal(t, username, parsedUsername)
 	assert.Equal(t, host, parsedHost)
@@ -119,7 +119,7 @@ func TestSSMDocumentService_ParseDocumentName(t *testing.T) {
 // TestSSMDocumentService_SanitizeSpecialCharacters tests special character handling
 func TestSSMDocumentService_SanitizeSpecialCharacters(t *testing.T) {
 	nameGenerator := validation.NewDocumentNameGeneratorWithPrefix("PF")
-	
+
 	tests := []struct {
 		name     string
 		username string
@@ -140,7 +140,7 @@ func TestSSMDocumentService_SanitizeSpecialCharacters(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			documentName := nameGenerator.GenerateName(tt.username, tt.host, 5432)
-			
+
 			// Document name should not contain certain special characters
 			assert.NotEmpty(t, documentName)
 			// The name generator should handle special characters appropriately

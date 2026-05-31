@@ -75,7 +75,7 @@ func TestAccessRequest_Validate_MissingUsername(t *testing.T) {
 // TestAccessRequest_Validate_InvalidPort tests validation fails with invalid port
 func TestAccessRequest_Validate_InvalidPort(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name string
 		port int
@@ -131,7 +131,7 @@ func TestAccessRequest_Validate_InvalidStatus(t *testing.T) {
 // TestAccessRequest_HasSecurityApproval tests security approval detection
 func TestAccessRequest_HasSecurityApproval(t *testing.T) {
 	approverID := "U123456"
-	
+
 	tests := []struct {
 		name     string
 		request  *models.AccessRequest
@@ -164,7 +164,7 @@ func TestAccessRequest_HasSecurityApproval(t *testing.T) {
 // TestAccessRequest_HasManagerApproval tests manager approval detection
 func TestAccessRequest_HasManagerApproval(t *testing.T) {
 	approverID := "U789012"
-	
+
 	tests := []struct {
 		name     string
 		request  *models.AccessRequest
@@ -198,7 +198,7 @@ func TestAccessRequest_HasManagerApproval(t *testing.T) {
 func TestAccessRequest_IsFullyApproved(t *testing.T) {
 	securityApproverID := "U123456"
 	managerApproverID := "U789012"
-	
+
 	tests := []struct {
 		name     string
 		request  *models.AccessRequest
@@ -319,7 +319,7 @@ func TestAccessRequest_StatusTransitions(t *testing.T) {
 			request := &models.AccessRequest{
 				Status: tt.status,
 			}
-			
+
 			assert.Equal(t, tt.isPending, request.IsPending(), "IsPending mismatch")
 			assert.Equal(t, tt.isApproved, request.IsApproved(), "IsApproved mismatch")
 			assert.Equal(t, tt.isDenied, request.IsDenied(), "IsDenied mismatch")
@@ -353,7 +353,7 @@ func TestAccessRequest_Validate_EmptyReason(t *testing.T) {
 // TestAccessRequest_Validate_WhitespaceOnlyReason tests validation fails with whitespace-only reason
 func TestAccessRequest_Validate_WhitespaceOnlyReason(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name   string
 		reason string
@@ -391,7 +391,7 @@ func TestAccessRequest_Validate_WhitespaceOnlyReason(t *testing.T) {
 // TestAccessRequest_Validate_ValidReason tests validation succeeds with valid reason
 func TestAccessRequest_Validate_ValidReason(t *testing.T) {
 	now := time.Now()
-	
+
 	tests := []struct {
 		name   string
 		reason string

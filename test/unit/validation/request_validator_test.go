@@ -18,7 +18,7 @@ func TestNewRequestValidator(t *testing.T) {
 	t.Run("uses default max days when zero provided", func(t *testing.T) {
 		validator := validation.NewRequestValidator(0)
 		assert.NotNil(t, validator)
-		
+
 		// Test that it uses default 90 days
 		futureDate := time.Now().AddDate(0, 0, 91)
 		result := validator.ValidateExpirationDate(futureDate)
@@ -154,7 +154,7 @@ func TestValidateHost(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator.ValidateHost(tt.host)
-			
+
 			if tt.expectValid {
 				assert.True(t, result.IsValid, "Expected host to be valid: %s", tt.host)
 			} else {
@@ -240,7 +240,7 @@ func TestValidatePort(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator.ValidatePort(tt.port)
-			
+
 			if tt.expectValid {
 				assert.True(t, result.IsValid, "Expected port to be valid: %d", tt.port)
 			} else {
@@ -317,7 +317,7 @@ func TestValidateExpirationDate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator.ValidateExpirationDate(tt.date)
-			
+
 			if tt.expectValid {
 				assert.True(t, result.IsValid, "Expected date to be valid")
 			} else {
@@ -410,7 +410,7 @@ func TestValidateUsername(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator.ValidateUsername(tt.username)
-			
+
 			if tt.expectValid {
 				assert.True(t, result.IsValid, "Expected username to be valid: %s", tt.username)
 			} else {
@@ -477,7 +477,7 @@ func TestValidateAccountID(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := validator.ValidateAccountID(tt.accountID)
-			
+
 			if tt.expectValid {
 				assert.True(t, result.IsValid, "Expected account ID to be valid: %s", tt.accountID)
 			} else {

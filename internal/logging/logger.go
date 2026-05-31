@@ -26,7 +26,7 @@ func NewLogger(environment string) (*Logger, error) {
 
 	// Use JSON encoding for structured logs
 	config.Encoding = "json"
-	
+
 	// Set time format to ISO8601
 	config.EncoderConfig.TimeKey = "timestamp"
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder

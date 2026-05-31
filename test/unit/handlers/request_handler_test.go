@@ -11,7 +11,7 @@ import (
 // For now, we'll create a local version for testing purposes
 func parseCommandText(text string) map[string]string {
 	params := make(map[string]string)
-	
+
 	// Manual parsing to handle quoted values
 	i := 0
 	for i < len(text) {
@@ -22,13 +22,13 @@ func parseCommandText(text string) map[string]string {
 		if i >= len(text) {
 			break
 		}
-		
+
 		// Find key=value pair
 		keyStart := i
 		for i < len(text) && text[i] != '=' && text[i] != ' ' && text[i] != '\t' {
 			i++
 		}
-		
+
 		if i >= len(text) || text[i] != '=' {
 			// No '=' found, skip this token
 			for i < len(text) && text[i] != ' ' && text[i] != '\t' {
@@ -36,16 +36,16 @@ func parseCommandText(text string) map[string]string {
 			}
 			continue
 		}
-		
+
 		key := text[keyStart:i]
 		i++ // Skip '='
-		
+
 		if i >= len(text) {
 			break
 		}
-		
+
 		var value string
-		
+
 		// Check if value is quoted
 		if text[i] == '"' {
 			i++ // Skip opening quote
@@ -64,7 +64,7 @@ func parseCommandText(text string) map[string]string {
 		} else {
 			// Unquoted value - read until whitespace
 			valueStart := i
-			
+
 			// Check for Slack URL formatting
 			if text[i] == '<' {
 				// Find the closing '>'
@@ -75,12 +75,12 @@ func parseCommandText(text string) map[string]string {
 					i++ // Include the '>'
 				}
 				rawValue := text[valueStart:i]
-				
+
 				// Strip Slack's URL formatting: <http://example.com|example.com> -> example.com
 				// Also handles: <http://example.com> -> example.com
 				if len(rawValue) > 2 && rawValue[0] == '<' && rawValue[len(rawValue)-1] == '>' {
 					rawValue = rawValue[1 : len(rawValue)-1]
-					
+
 					// If it contains a pipe, take the part after the pipe (the display text)
 					pipeIdx := -1
 					for j := 0; j < len(rawValue); j++ {
@@ -112,10 +112,10 @@ func parseCommandText(text string) map[string]string {
 				value = text[valueStart:i]
 			}
 		}
-		
+
 		params[key] = value
 	}
-	
+
 	return params
 }
 
@@ -123,7 +123,7 @@ func parseCommandText(text string) map[string]string {
 func TestParseCommandText_BasicParameters(t *testing.T) {
 	text := "host=db.example.com port=5432 account=123456789012"
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "5432", params["port"])
 	assert.Equal(t, "123456789012", params["account"])
@@ -133,7 +133,7 @@ func TestParseCommandText_BasicParameters(t *testing.T) {
 func TestParseCommandText_QuotedReason(t *testing.T) {
 	text := `host=db.example.com reason="Database investigation for ticket #1234"`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "Database investigation for ticket #1234", params["reason"])
 }
@@ -142,7 +142,7 @@ func TestParseCommandText_QuotedReason(t *testing.T) {
 func TestParseCommandText_QuotedReasonWithMultipleSpaces(t *testing.T) {
 	text := `reason="Need to investigate    production    issue"`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "Need to investigate    production    issue", params["reason"])
 }
 
@@ -150,7 +150,7 @@ func TestParseCommandText_QuotedReasonWithMultipleSpaces(t *testing.T) {
 func TestParseCommandText_UnquotedReason(t *testing.T) {
 	text := "host=db.example.com reason=investigation"
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "investigation", params["reason"])
 }
@@ -159,7 +159,7 @@ func TestParseCommandText_UnquotedReason(t *testing.T) {
 func TestParseCommandText_EmptyQuotedReason(t *testing.T) {
 	text := `host=db.example.com reason=""`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "", params["reason"])
 }
@@ -168,7 +168,7 @@ func TestParseCommandText_EmptyQuotedReason(t *testing.T) {
 func TestParseCommandText_ReasonWithSpecialCharacters(t *testing.T) {
 	text := `reason="Fix bug #123: database connection timeout (urgent!)"`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "Fix bug #123: database connection timeout (urgent!)", params["reason"])
 }
 
@@ -176,7 +176,7 @@ func TestParseCommandText_ReasonWithSpecialCharacters(t *testing.T) {
 func TestParseCommandText_MixedQuotedAndUnquoted(t *testing.T) {
 	text := `host=db.example.com port=5432 reason="Production issue" account=123456789012`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "5432", params["port"])
 	assert.Equal(t, "Production issue", params["reason"])
@@ -187,7 +187,7 @@ func TestParseCommandText_MixedQuotedAndUnquoted(t *testing.T) {
 func TestParseCommandText_SlackURLFormatting(t *testing.T) {
 	text := "host=<http://db.example.com|db.example.com> port=5432"
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "5432", params["port"])
 }
@@ -196,7 +196,7 @@ func TestParseCommandText_SlackURLFormatting(t *testing.T) {
 func TestParseCommandText_SlackURLFormattingWithoutPipe(t *testing.T) {
 	text := "host=<http://db.example.com> port=5432"
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "5432", params["port"])
 }
@@ -205,7 +205,7 @@ func TestParseCommandText_SlackURLFormattingWithoutPipe(t *testing.T) {
 func TestParseCommandText_NoParameters(t *testing.T) {
 	text := ""
 	params := parseCommandText(text)
-	
+
 	assert.Empty(t, params)
 }
 
@@ -213,7 +213,7 @@ func TestParseCommandText_NoParameters(t *testing.T) {
 func TestParseCommandText_OnlyWhitespace(t *testing.T) {
 	text := "   \t  "
 	params := parseCommandText(text)
-	
+
 	assert.Empty(t, params)
 }
 
@@ -221,7 +221,7 @@ func TestParseCommandText_OnlyWhitespace(t *testing.T) {
 func TestParseCommandText_ReasonAtBeginning(t *testing.T) {
 	text := `reason="Database maintenance" host=db.example.com port=5432`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "Database maintenance", params["reason"])
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "5432", params["port"])
@@ -231,7 +231,7 @@ func TestParseCommandText_ReasonAtBeginning(t *testing.T) {
 func TestParseCommandText_ReasonAtEnd(t *testing.T) {
 	text := `host=db.example.com port=5432 reason="Database maintenance"`
 	params := parseCommandText(text)
-	
+
 	assert.Equal(t, "db.example.com", params["host"])
 	assert.Equal(t, "5432", params["port"])
 	assert.Equal(t, "Database maintenance", params["reason"])
